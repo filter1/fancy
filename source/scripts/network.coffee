@@ -9,7 +9,7 @@ Network = () ->
 	curNodesData = []
 	linkedByIndex = {}
 
-	conceptToId = d3.map()
+	conceptToId = null
 
 	nodesG = null
 	linksG = null
@@ -20,7 +20,6 @@ Network = () ->
 	filter = ''
 
 	force = d3.layout.force()
-	# tooltip = Tooltip("vis-tooltip", 230)
 
 	network = (selection, data) ->
 		allData = setupData(data)
@@ -67,35 +66,20 @@ Network = () ->
 		
 	setupData = (data) ->
 
-		# conceptToId = d3.map(data.nodes, (x) -> x.name)
-
 		data.nodes.forEach (n) -> 
 			n.x = randomnumber=Math.floor(Math.random()*width)
 			n.y = randomnumber=Math.floor(Math.random()*height)
 			n.radius = circleRadius
 
-		nodesMap = mapNodes(data.nodes)
+		nodesMap = d3.map(data.nodes, (n) -> n.id)
+		conceptToId = d3.map(data.nodes, (x) -> x.name)
 
 		data.links.forEach (l) ->
 			l.source = nodesMap.get(l.source)
 			l.target = nodesMap.get(l.target)
 
 			linkedByIndex["#{l.source.id}, #{l.target.id}"] = 1
-
 		data
-
-	mapNodes = (nodes) ->
-		nodesMap = d3.map()
-		nodes.forEach (n) ->
-			nodesMap.set(n.id, n)
-		nodesMap
-
-	nodeCounts = (nodes, attr) ->
-		counts = {}
-		nodes.forEach (d) ->
-			counts[d[attr]] ?= 0
-			counts[d[attr]] += 1
-		counts
 
 	neighboring = (a, b) ->
 		linkedByIndex[a.id + "," + b.id] or
@@ -105,30 +89,32 @@ Network = () ->
 
 		filterdNodes = []
 
-		# for i in [0..allNodes.length - 1]
-		# 	name = allNodes[i].name
-		# 	console.log(filter)
-		# 	if filter.length > 0 and filter.every( (x) -> 0 <= name.search(x))
-		# 		filterdNodes.push(allNodes[i])
-		# 		console.log('check')
-
 		console.log(conceptToId)
+		console.log(filter)
 
-		filterdNodes.push(conceptToId.get(filter))
+		valueFromMap = conceptToId.get(filter)
 
+		console.log(valueFromMap)
+
+		if conceptToId.get(filter)
+			filterdNodes.push(conceptToId.get(filter))
+
+		filterdNodes
 
 
 	filterLinks = (allLinks, curNodes) ->
-		curNodes = mapNodes(curNodes)
+		console.log(curNodes)
+		curNodes = d3.map(curNodes, (x) -> x.id)
 		allLinks.filter (l) ->
 			curNodes.get(l.source.id) and curNodes.get(l.target.id)
 
 	updateNodes = () ->
-		node = nodesG.selectAll("cirlce.node")
+		node = nodesG.selectAll("g.xxx")
 			.data(curNodesData, (d) -> d.id)
-			node.enter()
+		
+		node.enter()
 			.append('g')
-			.attr('class', 'node')
+			.attr('class', 'xxx')
 			.call(force.drag)
 
 		node.append("circle")
@@ -153,6 +139,9 @@ Network = () ->
 
 		node.exit().remove()
 
+		console.log(curNodesData)
+		console.log(node)
+
 	updateLinks = () ->
 		link = linksG.selectAll("line.link")
 			.data(curLinksData, (d) -> "#{d.source.id}_#{d.target.id}")
@@ -172,7 +161,6 @@ Network = () ->
 	setFilter = (newFilter) ->
 		filterArray = newFilter.split(' ').sort()
 		filter = filterArray.join('')
-
 
 	forceTick = (e) ->
 		node
@@ -196,7 +184,6 @@ Network = () ->
 
 		# d3.selectAll('circle').filter (c) -> neighboring(c, curCirle)
 		# 	.style('fill', 'red')
-
 
 	hideDetails = (d, i) ->
 		node.select('circle').style("stroke", "#555")

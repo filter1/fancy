@@ -2,7 +2,7 @@
   var Network;
 
   Network = function() {
-    var allData, circleRadius, conceptToId, curLinksData, curNodesData, filter, filterLinks, filterNodes, force, forceTick, height, hideDetails, link, linkedByIndex, linksG, mapNodes, neighboring, network, node, nodeCounts, nodesG, setFilter, setupData, showDetails, update, updateLinks, updateNodes, width;
+    var allData, circleRadius, conceptToId, curLinksData, curNodesData, filter, filterLinks, filterNodes, force, forceTick, height, hideDetails, link, linkedByIndex, linksG, neighboring, network, node, nodesG, setFilter, setupData, showDetails, update, updateLinks, updateNodes, width;
     width = 700;
     height = 500;
     circleRadius = 20;
@@ -10,7 +10,7 @@
     curLinksData = [];
     curNodesData = [];
     linkedByIndex = {};
-    conceptToId = d3.map();
+    conceptToId = null;
     nodesG = null;
     linksG = null;
     node = null;
@@ -56,7 +56,12 @@
         n.y = randomnumber = Math.floor(Math.random() * height);
         return n.radius = circleRadius;
       });
-      nodesMap = mapNodes(data.nodes);
+      nodesMap = d3.map(data.nodes, function(n) {
+        return n.id;
+      });
+      conceptToId = d3.map(data.nodes, function(x) {
+        return x.name;
+      });
       data.links.forEach(function(l) {
         l.source = nodesMap.get(l.source);
         l.target = nodesMap.get(l.target);
@@ -64,46 +69,35 @@
       });
       return data;
     };
-    mapNodes = function(nodes) {
-      var nodesMap;
-      nodesMap = d3.map();
-      nodes.forEach(function(n) {
-        return nodesMap.set(n.id, n);
-      });
-      return nodesMap;
-    };
-    nodeCounts = function(nodes, attr) {
-      var counts;
-      counts = {};
-      nodes.forEach(function(d) {
-        var name;
-        if (counts[name = d[attr]] == null) {
-          counts[name] = 0;
-        }
-        return counts[d[attr]] += 1;
-      });
-      return counts;
-    };
     neighboring = function(a, b) {
       return linkedByIndex[a.id + "," + b.id] || linkedByIndex[b.id + "," + a.id];
     };
     filterNodes = function(allNodes) {
-      var filterdNodes;
+      var filterdNodes, valueFromMap;
       filterdNodes = [];
       console.log(conceptToId);
-      return filterdNodes.push(conceptToId.get(filter));
+      console.log(filter);
+      valueFromMap = conceptToId.get(filter);
+      console.log(valueFromMap);
+      if (conceptToId.get(filter)) {
+        filterdNodes.push(conceptToId.get(filter));
+      }
+      return filterdNodes;
     };
     filterLinks = function(allLinks, curNodes) {
-      curNodes = mapNodes(curNodes);
+      console.log(curNodes);
+      curNodes = d3.map(curNodes, function(x) {
+        return x.id;
+      });
       return allLinks.filter(function(l) {
         return curNodes.get(l.source.id) && curNodes.get(l.target.id);
       });
     };
     updateNodes = function() {
-      node = nodesG.selectAll("cirlce.node").data(curNodesData, function(d) {
+      node = nodesG.selectAll("g.xxx").data(curNodesData, function(d) {
         return d.id;
       });
-      node.enter().append('g').attr('class', 'node').call(force.drag);
+      node.enter().append('g').attr('class', 'xxx').call(force.drag);
       node.append("circle").attr("class", "node").attr("r", function(d) {
         return d.radius;
       }).style("fill", 'white').style("stroke", '#555').style("stroke-width", 1.0);
@@ -114,7 +108,9 @@
         return x.documents;
       }).attr('class', 'documents').attr('dy', '.5em');
       node.on("mouseover", showDetails).on("mouseout", hideDetails);
-      return node.exit().remove();
+      node.exit().remove();
+      console.log(curNodesData);
+      return console.log(node);
     };
     updateLinks = function() {
       link = linksG.selectAll("line.link").data(curLinksData, function(d) {
