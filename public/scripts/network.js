@@ -2,7 +2,7 @@
   var Network;
 
   Network = function() {
-    var allData, circleRadius, conceptToId, curLinksData, curNodesData, filter, filterLinks, filterNodes, force, forceTick, height, hideDetails, link, linkedByIndex, linksG, neighboring, network, node, nodesG, setFilter, setupData, showDetails, update, updateLinks, updateNodes, width;
+    var allData, circleRadius, conceptToId, curLinksData, curNodesData, filter, filterLinks, filterNodes, force, forceTick, height, hideDetails, link, linkedByIndex, linksG, navigateNewConcept, neighboring, network, node, nodesG, setFilter, setupData, showDetails, update, updateLinks, updateNodes, width;
     width = 700;
     height = 500;
     circleRadius = 20;
@@ -65,7 +65,7 @@
       data.links.forEach(function(l) {
         l.source = nodesMap.get(l.source);
         l.target = nodesMap.get(l.target);
-        return linkedByIndex[l.source.id + ", " + l.target.id] = 1;
+        return linkedByIndex[l.source.id + "," + l.target.id] = 1;
       });
       return data;
     };
@@ -75,17 +75,16 @@
     filterNodes = function(allNodes) {
       var filterdNodes, valueFromMap;
       filterdNodes = [];
-      console.log(conceptToId);
-      console.log(filter);
       valueFromMap = conceptToId.get(filter);
-      console.log(valueFromMap);
       if (conceptToId.get(filter)) {
         filterdNodes.push(conceptToId.get(filter));
+        filterdNodes = filterdNodes.concat(allNodes.filter(function(x) {
+          return neighboring(valueFromMap, x);
+        }));
       }
       return filterdNodes;
     };
     filterLinks = function(allLinks, curNodes) {
-      console.log(curNodes);
       curNodes = d3.map(curNodes, function(x) {
         return x.id;
       });
@@ -107,10 +106,8 @@
       node.append('text').text(function(x) {
         return x.documents;
       }).attr('class', 'documents').attr('dy', '.5em');
-      node.on("mouseover", showDetails).on("mouseout", hideDetails);
-      node.exit().remove();
-      console.log(curNodesData);
-      return console.log(node);
+      node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", navigateNewConcept);
+      return node.exit().remove();
     };
     updateLinks = function() {
       link = linksG.selectAll("line.link").data(curLinksData, function(d) {
@@ -153,6 +150,10 @@
     };
     hideDetails = function(d, i) {
       return node.select('circle').style("stroke", "#555").style("stroke-width", 1.0);
+    };
+    navigateNewConcept = function(d, i) {
+      network.toggleFilter(d.name);
+      return console.log(d);
     };
     return network;
   };

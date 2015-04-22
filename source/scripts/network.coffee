@@ -53,6 +53,8 @@ Network = () ->
 
 		force.start()
 
+		
+
 	network.toggleFilter = (newFilter) ->
 		force.stop()
 		setFilter(newFilter)
@@ -78,7 +80,7 @@ Network = () ->
 			l.source = nodesMap.get(l.source)
 			l.target = nodesMap.get(l.target)
 
-			linkedByIndex["#{l.source.id}, #{l.target.id}"] = 1
+			linkedByIndex["#{l.source.id},#{l.target.id}"] = 1
 		data
 
 	neighboring = (a, b) ->
@@ -86,24 +88,18 @@ Network = () ->
 			linkedByIndex[b.id + "," + a.id]
 
 	filterNodes = (allNodes) ->
-
 		filterdNodes = []
-
-		console.log(conceptToId)
-		console.log(filter)
-
 		valueFromMap = conceptToId.get(filter)
-
-		console.log(valueFromMap)
 
 		if conceptToId.get(filter)
 			filterdNodes.push(conceptToId.get(filter))
+
+			filterdNodes = filterdNodes.concat (allNodes.filter((x) -> neighboring(valueFromMap, x)))
 
 		filterdNodes
 
 
 	filterLinks = (allLinks, curNodes) ->
-		console.log(curNodes)
 		curNodes = d3.map(curNodes, (x) -> x.id)
 		allLinks.filter (l) ->
 			curNodes.get(l.source.id) and curNodes.get(l.target.id)
@@ -136,11 +132,9 @@ Network = () ->
 
 		node.on("mouseover", showDetails)
 			.on("mouseout", hideDetails)
+			.on("click", navigateNewConcept)
 
 		node.exit().remove()
-
-		console.log(curNodesData)
-		console.log(node)
 
 	updateLinks = () ->
 		link = linksG.selectAll("line.link")
@@ -188,6 +182,11 @@ Network = () ->
 	hideDetails = (d, i) ->
 		node.select('circle').style("stroke", "#555")
 			.style("stroke-width", 1.0)
+
+	navigateNewConcept = (d, i) ->
+		network.toggleFilter(d.name)
+
+		console.log d 
 
 	return network
 
