@@ -2,7 +2,7 @@
   var Network;
 
   Network = function() {
-    var allData, circleRadius, conceptToId, curLinksData, curNodesData, filter, filterLinks, filterNodes, force, forceTick, height, hideDetails, link, linkedByIndex, linksG, navigateNewConcept, neighboring, network, node, nodesG, setFilter, setupData, showDetails, update, updateLinks, updateNodes, width;
+    var allData, circleRadius, conceptToId, curConcept, curLinksData, curNodesData, filterLinks, filterNodes, force, forceTick, height, hideDetails, link, linkedByIndex, linksG, navigateNewConcept, neighboring, network, node, nodesG, nodesMap, setCurConcept, setupData, showDetails, update, updateLinks, updateNodes, width;
     width = 700;
     height = 500;
     circleRadius = 20;
@@ -11,11 +11,12 @@
     curNodesData = [];
     linkedByIndex = {};
     conceptToId = null;
+    nodesMap = null;
     nodesG = null;
     linksG = null;
     node = null;
     link = null;
-    filter = '';
+    curConcept = null;
     force = d3.layout.force();
     network = function(selection, data) {
       var vis;
@@ -25,7 +26,6 @@
       nodesG = vis.append("g").attr("id", "nodes");
       force.size([width, height]);
       force.on("tick", forceTick).charge(-1000).linkDistance(100);
-      setFilter('');
       return update();
     };
     update = function() {
@@ -35,11 +35,14 @@
       updateNodes();
       force.links(curLinksData);
       updateLinks();
-      return force.start();
+      force.start();
+      if (curConcept) {
+        return $('#details').text('').append("<h3>" + curConcept.name + '</h3>').append(curConcept.documents);
+      }
     };
     network.toggleFilter = function(newFilter) {
       force.stop();
-      setFilter(newFilter);
+      setCurConcept(newFilter);
       return update();
     };
     network.updateData = function(newData) {
@@ -49,7 +52,6 @@
       return update();
     };
     setupData = function(data) {
-      var nodesMap;
       data.nodes.forEach(function(n) {
         var randomnumber;
         n.x = randomnumber = Math.floor(Math.random() * width);
@@ -73,13 +75,12 @@
       return linkedByIndex[a.id + "," + b.id] || linkedByIndex[b.id + "," + a.id];
     };
     filterNodes = function(allNodes) {
-      var filterdNodes, valueFromMap;
+      var filterdNodes;
       filterdNodes = [];
-      valueFromMap = conceptToId.get(filter);
-      if (conceptToId.get(filter)) {
-        filterdNodes.push(conceptToId.get(filter));
+      if (curConcept) {
+        filterdNodes.push(curConcept);
         filterdNodes = filterdNodes.concat(allNodes.filter(function(x) {
-          return neighboring(valueFromMap, x);
+          return neighboring(curConcept, x);
         }));
       }
       return filterdNodes;
@@ -124,10 +125,10 @@
       });
       return link.exit().remove();
     };
-    setFilter = function(newFilter) {
-      var filterArray;
-      filterArray = newFilter.split(' ').sort();
-      return filter = filterArray.join('');
+    setCurConcept = function(newConcept) {
+      var conceptProccessed;
+      conceptProccessed = newConcept.split(' ').sort().join();
+      return curConcept = conceptToId.get(conceptProccessed);
     };
     forceTick = function(e) {
       node.attr("transform", function(d, i) {
@@ -152,8 +153,7 @@
       return node.select('circle').style("stroke", "#555").style("stroke-width", 1.0);
     };
     navigateNewConcept = function(d, i) {
-      network.toggleFilter(d.name);
-      return console.log(d);
+      return network.toggleFilter(d.name);
     };
     return network;
   };

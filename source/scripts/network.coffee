@@ -10,6 +10,7 @@ Network = () ->
 	linkedByIndex = {}
 
 	conceptToId = null
+	nodesMap = null
 
 	nodesG = null
 	linksG = null
@@ -17,7 +18,8 @@ Network = () ->
 	node = null
 	link = null
 
-	filter = ''
+	# initialise witout any concept
+	curConcept = null
 
 	force = d3.layout.force()
 
@@ -36,7 +38,7 @@ Network = () ->
 			.charge(-1000)
 			.linkDistance(100)
 
-		setFilter('')
+		# setCurConcept(null)
 
 		update()
 
@@ -53,11 +55,15 @@ Network = () ->
 
 		force.start()
 
-		
+		if curConcept
+			$('#details').text('')
+				.append("<h3>" + curConcept.name + '</h3>')
+				.append(curConcept.documents)
+
 
 	network.toggleFilter = (newFilter) ->
 		force.stop()
-		setFilter(newFilter)
+		setCurConcept(newFilter)
 		update()
 
 	network.updateData = (newData) ->
@@ -89,12 +95,11 @@ Network = () ->
 
 	filterNodes = (allNodes) ->
 		filterdNodes = []
-		valueFromMap = conceptToId.get(filter)
 
-		if conceptToId.get(filter)
-			filterdNodes.push(conceptToId.get(filter))
+		if curConcept
+			filterdNodes.push(curConcept)
 
-			filterdNodes = filterdNodes.concat (allNodes.filter((x) -> neighboring(valueFromMap, x)))
+			filterdNodes = filterdNodes.concat (allNodes.filter((x) -> neighboring(curConcept, x)))
 
 		filterdNodes
 
@@ -152,9 +157,9 @@ Network = () ->
 		link.exit().remove()
 
 	# transform to internal filter representation
-	setFilter = (newFilter) ->
-		filterArray = newFilter.split(' ').sort()
-		filter = filterArray.join('')
+	setCurConcept = (newConcept) ->
+		conceptProccessed = newConcept.split(' ').sort().join()
+		curConcept = conceptToId.get conceptProccessed
 
 	forceTick = (e) ->
 		node
@@ -168,16 +173,9 @@ Network = () ->
 
 	showDetails = (d, i) ->
 
-		# console.log(d)
-		# console.log(i)
-
 		curCirle = d3.select(this).select('circle')
-
 		curCirle.style("stroke", "black")
 			.style("stroke-width", 2.0)
-
-		# d3.selectAll('circle').filter (c) -> neighboring(c, curCirle)
-		# 	.style('fill', 'red')
 
 	hideDetails = (d, i) ->
 		node.select('circle').style("stroke", "#555")
@@ -185,8 +183,6 @@ Network = () ->
 
 	navigateNewConcept = (d, i) ->
 		network.toggleFilter(d.name)
-
-		console.log d 
 
 	return network
 
