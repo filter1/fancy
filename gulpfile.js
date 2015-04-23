@@ -8,33 +8,33 @@ var gulp = require('gulp'),
 gulp.task('webserver', function() {
   connect.server({
     livereload: true,
-    root: 'public'
+    root: 'app'
   });
 });
  
 gulp.task('livereload', function() {
-  watch('public/*')
+  watch('app/*')
     .pipe(connect.reload());
 });
  
 gulp.task('coffee', function() {
-  gulp.src('source/scripts/*.coffee')
+  gulp.src('app/scripts/*.coffee')
     .pipe(coffee())
-    .pipe(gulp.dest('public/scripts'))
+    .pipe(gulp.dest('app/scripts'))
     .pipe(connect.reload());
 });
 
 // can add more here
 gulp.task('watch', function() {
-  gulp.watch('source/scripts/*.coffee', ['coffee'])
+  gulp.watch('app/scripts/*.coffee', ['coffee'])
 })
 
 // TODO: all
 gulp.task('minScripts', function() {
-	gulp.src('public/scripts/*.js')
+	gulp.src('app/scripts/*.js')
 		.pipe(uglify())
-		.pipe(concat('all.js'))
-		.pipe(gulp.dest('public/scripts'));
+		.pipe(concat('all.min.js'))
+		.pipe(gulp.dest('app/scripts'));
 });
 
 

@@ -172,13 +172,11 @@ Network = () ->
 			.attr("y2", (d) -> d.target.y)
 
 	showDetails = (d, i) ->
-
-		curCirle = d3.select(this).select('circle')
-		curCirle.style("stroke", "black")
+		d3.select(this).select('circle')
 			.style("stroke-width", 2.0)
 
 	hideDetails = (d, i) ->
-		node.select('circle').style("stroke", "#555")
+		node.select('circle')
 			.style("stroke-width", 1.0)
 
 	navigateNewConcept = (d, i) ->

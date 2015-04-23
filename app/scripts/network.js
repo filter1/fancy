@@ -145,12 +145,10 @@
       });
     };
     showDetails = function(d, i) {
-      var curCirle;
-      curCirle = d3.select(this).select('circle');
-      return curCirle.style("stroke", "black").style("stroke-width", 2.0);
+      return d3.select(this).select('circle').style("stroke-width", 2.0);
     };
     hideDetails = function(d, i) {
-      return node.select('circle').style("stroke", "#555").style("stroke-width", 1.0);
+      return node.select('circle').style("stroke-width", 1.0);
     };
     navigateNewConcept = function(d, i) {
       return network.toggleFilter(d.name);
