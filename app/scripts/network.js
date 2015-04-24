@@ -45,12 +45,6 @@
       setCurConcept(newFilter);
       return update();
     };
-    network.updateData = function(newData) {
-      allData = setupData(newData);
-      link.remove();
-      node.remove();
-      return update();
-    };
     setupData = function(data) {
       data.nodes.forEach(function(n) {
         var randomnumber;

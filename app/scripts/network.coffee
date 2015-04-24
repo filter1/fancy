@@ -1,7 +1,6 @@
 Network = () ->
 	width = 700
 	height = 500
-	
 	circleRadius = 20
 
 	allData = []
@@ -38,8 +37,6 @@ Network = () ->
 			.charge(-1000)
 			.linkDistance(100)
 
-		# setCurConcept(null)
-
 		update()
 
 	update = () ->
@@ -47,7 +44,6 @@ Network = () ->
 		curLinksData = filterLinks(allData.links, curNodesData)
 
 		force.nodes(curNodesData)
-
 		updateNodes()
 
 		force.links(curLinksData)
@@ -60,20 +56,12 @@ Network = () ->
 				.append("<h3>" + curConcept.name + '</h3>')
 				.append(curConcept.documents)
 
-
 	network.toggleFilter = (newFilter) ->
 		force.stop()
 		setCurConcept(newFilter)
 		update()
-
-	network.updateData = (newData) ->
-		allData = setupData(newData)
-		link.remove()
-		node.remove()
-		update()
 		
 	setupData = (data) ->
-
 		data.nodes.forEach (n) -> 
 			n.x = randomnumber=Math.floor(Math.random()*width)
 			n.y = randomnumber=Math.floor(Math.random()*height)
@@ -193,4 +181,3 @@ $ ->
 	$('#searchButton').click ->
 		newFilter = $('#searchText').val()
 		myNetwork.toggleFilter(newFilter)
-
