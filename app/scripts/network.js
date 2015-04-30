@@ -2,16 +2,18 @@
   var Network;
 
   Network = function() {
-    var allData, circleRadius, conceptToId, curConcept, curLinksData, curNodesData, filterLinks, filterNodes, force, forceTick, height, hideDetails, link, linkedByIndex, linksG, navigateNewConcept, neighboring, network, node, nodesG, nodesMap, setCurConcept, setupData, showDetails, update, updateLinks, updateNodes, width;
-    width = 700;
+    var allNodes, allObjects, circleRadius, colorBy, conceptToId, curConcept, curLinksData, curNodesData, difArray, filterLinks, filterNodes, force, forceTick, formatLabelText, height, hideDetails, idToConcept, link, linkedByIndex, linksG, navigateNewConcept, network, node, nodesG, radiusScale, setCurConcept, setupData, showDetails, update, updateLinks, updateNodes, width;
+    width = 500;
     height = 500;
     circleRadius = 20;
-    allData = [];
+    radiusScale = d3.scale.linear().range([20, 30]).domain([0, 200]);
+    allObjects = [];
+    allNodes = [];
     curLinksData = [];
     curNodesData = [];
     linkedByIndex = {};
     conceptToId = null;
-    nodesMap = null;
+    idToConcept = null;
     nodesG = null;
     linksG = null;
     node = null;
@@ -19,18 +21,21 @@
     curConcept = null;
     force = d3.layout.force();
     network = function(selection, data) {
-      var vis;
-      allData = setupData(data);
+      var setCurConcept, vis;
+      setupData(data);
       vis = d3.select(selection).append("svg").attr("width", width).attr("height", height);
       linksG = vis.append("g").attr("id", "links");
       nodesG = vis.append("g").attr("id", "nodes");
       force.size([width, height]);
-      force.on("tick", forceTick).charge(-1000).linkDistance(100);
+      force.on("tick", forceTick).charge(-500).linkDistance(function(d) {
+        return d.weight;
+      }).size([width, height]);
+      setCurConcept = ['aguada'];
       return update();
     };
     update = function() {
-      curNodesData = filterNodes(allData.nodes);
-      curLinksData = filterLinks(allData.links, curNodesData);
+      curNodesData = filterNodes(allNodes);
+      curLinksData = filterLinks(curNodesData);
       force.nodes(curNodesData);
       updateNodes();
       force.links(curLinksData);
@@ -46,46 +51,76 @@
       return update();
     };
     setupData = function(data) {
-      data.nodes.forEach(function(n) {
-        var randomnumber;
-        n.x = randomnumber = Math.floor(Math.random() * width);
-        n.y = randomnumber = Math.floor(Math.random() * height);
-        return n.radius = circleRadius;
+      var nodes, objects;
+      nodes = data.lattice;
+      objects = data.objects;
+      nodes.forEach(function(n) {
+        return n.radius = radiusScale(n.extensionNames.length);
       });
-      nodesMap = d3.map(data.nodes, function(n) {
+      idToConcept = d3.map(nodes, function(n) {
         return n.id;
       });
-      conceptToId = d3.map(data.nodes, function(x) {
-        return x.name;
+      conceptToId = d3.map(nodes, function(x) {
+        return x.intensionNames.sort();
       });
-      data.links.forEach(function(l) {
-        l.source = nodesMap.get(l.source);
-        l.target = nodesMap.get(l.target);
-        return linkedByIndex[l.source.id + "," + l.target.id] = 1;
-      });
-      return data;
-    };
-    neighboring = function(a, b) {
-      return linkedByIndex[a.id + "," + b.id] || linkedByIndex[b.id + "," + a.id];
+      allNodes = nodes;
+      return allObjects = objects;
     };
     filterNodes = function(allNodes) {
       var filterdNodes;
       filterdNodes = [];
       if (curConcept) {
         filterdNodes.push(curConcept);
-        filterdNodes = filterdNodes.concat(allNodes.filter(function(x) {
-          return neighboring(curConcept, x);
+        filterdNodes = filterdNodes.concat(curConcept.parentNames.map(function(x) {
+          return idToConcept.get(x);
+        }));
+        filterdNodes = filterdNodes.concat(curConcept.childrenNames.map(function(x) {
+          return idToConcept.get(x);
         }));
       }
       return filterdNodes;
     };
-    filterLinks = function(allLinks, curNodes) {
-      curNodes = d3.map(curNodes, function(x) {
+    filterLinks = function(curNodes) {
+      var curLinks, idToCurNodes, j, k, len, len1, n, pId, randomnumber, ref;
+      curLinks = [];
+      idToCurNodes = d3.map(curNodes, function(x) {
         return x.id;
       });
-      return allLinks.filter(function(l) {
-        return curNodes.get(l.source.id) && curNodes.get(l.target.id);
+      for (j = 0, len = curNodes.length; j < len; j++) {
+        n = curNodes[j];
+        ref = n.childrenNames;
+        for (k = 0, len1 = ref.length; k < len1; k++) {
+          pId = ref[k];
+          if (idToCurNodes.get(pId)) {
+            curLinks.push({
+              'source': idToConcept.get(n.id),
+              'target': idToConcept.get(pId),
+              'weight': randomnumber = Math.floor(Math.random() * height) / 2
+            });
+          }
+        }
+      }
+      return curLinks;
+    };
+    difArray = function(x, y) {
+      return x.filter(function(z) {
+        return y.indexOf(z) < 0;
       });
+    };
+    formatLabelText = function(x, y) {
+      if (x === y) {
+        return x;
+      }
+      if (x.length > y.length) {
+        return difArray(x, y);
+      }
+      return difArray(y, x);
+    };
+    colorBy = function(d) {
+      if (d.intensionNames.length < curConcept.intensionNames.length) {
+        return 'orange';
+      }
+      return 'white';
     };
     updateNodes = function() {
       node = nodesG.selectAll("g.xxx").data(curNodesData, function(d) {
@@ -94,13 +129,10 @@
       node.enter().append('g').attr('class', 'xxx').call(force.drag);
       node.append("circle").attr("class", "node").attr("r", function(d) {
         return d.radius;
-      }).style("fill", 'white').style("stroke", '#555').style("stroke-width", 1.0);
+      }).style("fill", colorBy).style("stroke", '#555').style("stroke-width", 1.0);
       node.append("text").text(function(x) {
-        return x.name;
-      }).attr('class', 'label').attr('dy', '-.5em');
-      node.append('text').text(function(x) {
-        return x.documents;
-      }).attr('class', 'documents').attr('dy', '.5em');
+        return formatLabelText(x.intensionNames, curConcept.intensionNames);
+      }).attr('class', 'label');
       node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", navigateNewConcept);
       return node.exit().remove();
     };
@@ -121,7 +153,7 @@
     };
     setCurConcept = function(newConcept) {
       var conceptProccessed;
-      conceptProccessed = newConcept.split(' ').sort().join();
+      conceptProccessed = newConcept.sort();
       return curConcept = conceptToId.get(conceptProccessed);
     };
     forceTick = function(e) {
@@ -145,7 +177,7 @@
       return node.select('circle').style("stroke-width", 1.0);
     };
     navigateNewConcept = function(d, i) {
-      return network.toggleFilter(d.name);
+      return network.toggleFilter(d.intensionNames);
     };
     return network;
   };
@@ -153,12 +185,12 @@
   $(function() {
     var myNetwork;
     myNetwork = Network();
-    d3.json("network.json", function(json) {
+    d3.json("lattice.json", function(json) {
       return myNetwork("#vis", json);
     });
     return $('#searchButton').click(function() {
       var newFilter;
-      newFilter = $('#searchText').val();
+      newFilter = $('#searchText').val().split(' ');
       return myNetwork.toggleFilter(newFilter);
     });
   });

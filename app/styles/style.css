@@ -9,3 +9,7 @@ body {
 text {
 	text-anchor: middle;
 }
+
+svg {
+	border: 1px solid black;
+}

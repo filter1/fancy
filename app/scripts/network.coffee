@@ -1,15 +1,19 @@
 Network = () ->
-	width = 700
+	width = 500
 	height = 500
 	circleRadius = 20
 
-	allData = []
+	radiusScale = d3.scale.linear().range([20,30]).domain([0, 200])
+
+	allObjects = []
+	allNodes = []
+
 	curLinksData = []
 	curNodesData = []
 	linkedByIndex = {}
 
 	conceptToId = null
-	nodesMap = null
+	idToConcept = null
 
 	nodesG = null
 	linksG = null
@@ -23,7 +27,7 @@ Network = () ->
 	force = d3.layout.force()
 
 	network = (selection, data) ->
-		allData = setupData(data)
+		setupData(data)
 
 		vis = d3.select(selection).append("svg")
 			.attr("width", width)
@@ -34,14 +38,18 @@ Network = () ->
 		force.size([width, height])
 
 		force.on("tick", forceTick)
-			.charge(-1000)
-			.linkDistance(100)
+			.charge(-500)
+			.linkDistance( (d) -> d.weight)
+			.size([width, height])
+
+			# debug
+		setCurConcept = ['aguada']
 
 		update()
 
 	update = () ->
-		curNodesData = filterNodes(allData.nodes)
-		curLinksData = filterLinks(allData.links, curNodesData)
+		curNodesData = filterNodes(allNodes)
+		curLinksData = filterLinks(curNodesData)
 
 		force.nodes(curNodesData)
 		updateNodes()
@@ -62,40 +70,51 @@ Network = () ->
 		update()
 		
 	setupData = (data) ->
-		data.nodes.forEach (n) -> 
-			n.x = randomnumber=Math.floor(Math.random()*width)
-			n.y = randomnumber=Math.floor(Math.random()*height)
-			n.radius = circleRadius
+		nodes = data.lattice
+		objects = data.objects
 
-		nodesMap = d3.map(data.nodes, (n) -> n.id)
-		conceptToId = d3.map(data.nodes, (x) -> x.name)
+		nodes.forEach (n) -> 
+			n.radius = radiusScale(n.extensionNames.length)
 
-		data.links.forEach (l) ->
-			l.source = nodesMap.get(l.source)
-			l.target = nodesMap.get(l.target)
+		idToConcept = d3.map(nodes, (n) -> n.id)
+		conceptToId = d3.map(nodes, (x) -> x.intensionNames.sort())
 
-			linkedByIndex["#{l.source.id},#{l.target.id}"] = 1
-		data
+		allNodes = nodes
+		allObjects = objects
 
-	neighboring = (a, b) ->
-		linkedByIndex[a.id + "," + b.id] or
-			linkedByIndex[b.id + "," + a.id]
 
 	filterNodes = (allNodes) ->
 		filterdNodes = []
-
 		if curConcept
 			filterdNodes.push(curConcept)
-
-			filterdNodes = filterdNodes.concat (allNodes.filter((x) -> neighboring(curConcept, x)))
-
+			filterdNodes = filterdNodes.concat curConcept.parentNames.map (x) -> idToConcept.get x
+			filterdNodes = filterdNodes.concat curConcept.childrenNames.map (x) -> idToConcept.get x
 		filterdNodes
 
+	filterLinks = (curNodes) ->
+		curLinks = []
+		idToCurNodes = d3.map(curNodes, (x) -> x.id)
 
-	filterLinks = (allLinks, curNodes) ->
-		curNodes = d3.map(curNodes, (x) -> x.id)
-		allLinks.filter (l) ->
-			curNodes.get(l.source.id) and curNodes.get(l.target.id)
+		for n in curNodes
+			for pId in n.childrenNames
+				if idToCurNodes.get(pId)
+					curLinks.push {'source':idToConcept.get(n.id),'target':idToConcept.get(pId),'weight': randomnumber=Math.floor(Math.random()*height)/2}
+		curLinks
+
+	# y - x
+	difArray = (x, y) ->
+		return x.filter (z) -> 
+			y.indexOf(z) < 0
+
+	formatLabelText = (x, y) ->
+		return x if x == y
+		return difArray(x, y) if x.length > y.length
+		return difArray(y, x)
+
+	colorBy = (d) ->
+		if d.intensionNames.length < curConcept.intensionNames.length
+			return 'orange'
+		return 'white'
 
 	updateNodes = () ->
 		node = nodesG.selectAll("g.xxx")
@@ -104,24 +123,19 @@ Network = () ->
 		node.enter()
 			.append('g')
 			.attr('class', 'xxx')
+			# .attr('cy', 0)
 			.call(force.drag)
 
 		node.append("circle")
 			.attr("class", "node")
 			.attr("r", (d) -> d.radius)
-			.style("fill", 'white')
+			.style("fill", colorBy)
 			.style("stroke", '#555')
 			.style("stroke-width", 1.0)
 
 		node.append("text")
-			.text((x) -> x.name)
+			.text((x) -> formatLabelText(x.intensionNames, curConcept.intensionNames))
 			.attr('class', 'label')
-			.attr('dy', '-.5em')
-
-		node.append('text')
-			.text((x) -> x.documents)
-			.attr('class', 'documents')
-			.attr('dy', '.5em')
 
 		node.on("mouseover", showDetails)
 			.on("mouseout", hideDetails)
@@ -146,18 +160,23 @@ Network = () ->
 
 	# transform to internal filter representation
 	setCurConcept = (newConcept) ->
-		conceptProccessed = newConcept.split(' ').sort().join()
+		conceptProccessed = newConcept.sort()
 		curConcept = conceptToId.get conceptProccessed
 
 	forceTick = (e) ->
 		node
 			.attr("transform", (d, i) -> "translate(" + d.x + "," + d.y + ")")
+			# .attr("transform", (d, i) -> "translate(" + d.x + "," + 0.5*d.y + ")")
 
 		link
 			.attr("x1", (d) -> d.source.x)
+			# .attr("x1", (d) -> 1.5*d.source.x)
 			.attr("y1", (d) -> d.source.y)
+			# .attr("y1", (d) -> 0.5*d.source.y)
 			.attr("x2", (d) -> d.target.x)
+			# .attr("x2", (d) -> 1.5*d.target.x)
 			.attr("y2", (d) -> d.target.y)
+			# .attr("y2", (d) -> 0.5*d.target.y)
 
 	showDetails = (d, i) ->
 		d3.select(this).select('circle')
@@ -168,16 +187,16 @@ Network = () ->
 			.style("stroke-width", 1.0)
 
 	navigateNewConcept = (d, i) ->
-		network.toggleFilter(d.name)
+		network.toggleFilter(d.intensionNames)
 
 	return network
 
 $ ->
 	myNetwork = Network()
 	
-	d3.json "network.json", (json) ->
+	d3.json "lattice.json", (json) ->
 		myNetwork("#vis", json)
 
 	$('#searchButton').click ->
-		newFilter = $('#searchText').val()
+		newFilter = $('#searchText').val().split(' ')
 		myNetwork.toggleFilter(newFilter)
