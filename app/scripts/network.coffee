@@ -10,18 +10,18 @@ Network = () ->
 	curNodesData = []
 	linkedByIndex = {}
 
-	# d3 dicts will be setup at init
+	# d3 dictionaries will be setup at init
 	conceptToId = null
 	idToConcept = null
 	documents = null
 
 	nodesG = null
-	linksG = null
+	# linksG = null
 
 	node = null
-	link = null
+	# link = null
 
-	# initialise witout any concept
+	# initialize without any concept
 	curConcept = null
 
 	force = d3.layout.force()
@@ -32,27 +32,27 @@ Network = () ->
 		vis = d3.select(selection).append("svg")
 			.attr("width", width)
 			.attr("height", height)
-		linksG = vis.append("g").attr("id", "links")
+		# linksG = vis.append("g").attr("id", "links")
 		nodesG = vis.append("g").attr("id", "nodes")
 
 		# force.size([width, height])
 
 		force.on("tick", forceTick)
-			.charge(-500)
-			.linkDistance( (d) -> d.weight)
+			.charge(-100)
+			# .linkDistance( (d) -> d.weight)
 			.size([width, height])
 
 		update()
 
 	update = () ->
 		curNodesData = filterNodes(allNodes)
-		curLinksData = filterLinks(curNodesData)
+		# curLinksData = filterLinks(curNodesData)
 
 		force.nodes(curNodesData)
 		updateNodes()
 
-		force.links(curLinksData)
-		updateLinks()
+		# force.links(curLinksData)
+		# updateLinks()
 
 		force.start()
 
@@ -109,15 +109,15 @@ Network = () ->
 			filterdNodes = filterdNodes.concat curConcept.childrenNames.map (x) -> idToConcept.get x
 		filterdNodes
 
-	filterLinks = (curNodes) ->
-		curLinks = []
-		idToCurNodes = d3.map(curNodes, (x) -> x.id)
+	# filterLinks = (curNodes) ->
+	# 	curLinks = []
+	# 	idToCurNodes = d3.map(curNodes, (x) -> x.id)
 
-		for n in curNodes
-			for pId in n.childrenNames
-				if idToCurNodes.get(pId)
-					curLinks.push {'source':idToConcept.get(n.id),'target':idToConcept.get(pId),'weight': randomnumber=Math.floor(Math.random()*height)/2}
-		curLinks
+	# 	for n in curNodes
+	# 		for pId in n.childrenNames
+	# 			if idToCurNodes.get(pId)
+	# 				curLinks.push {'source':idToConcept.get(n.id),'target':idToConcept.get(pId),'weight': randomnumber=Math.floor(Math.random()*height)/2}
+	# 	curLinks
 
 	# y - x
 	difArray = (x, y) ->
@@ -163,20 +163,20 @@ Network = () ->
 
 		node.exit().remove()
 
-	updateLinks = ->
-		link = linksG.selectAll("line.link")
-			.data(curLinksData, (d) -> "#{d.source.id}_#{d.target.id}")
+	# updateLinks = ->
+	# 	link = linksG.selectAll("line.link")
+	# 		.data(curLinksData, (d) -> "#{d.source.id}_#{d.target.id}")
 
-		link.enter().append("line")
-			.attr("class", "link")
-			.attr("stroke", "#ddd")
-			.attr("stroke-opacity", 0.8)
-			.attr("x1", (d) -> d.source.x)
-			.attr("y1", (d) -> d.source.y)
-			.attr("x2", (d) -> d.target.x)
-			.attr("y2", (d) -> d.target.y)
+	# 	link.enter().append("line")
+	# 		.attr("class", "link")
+	# 		.attr("stroke", "#ddd")
+	# 		.attr("stroke-opacity", 0.8)
+	# 		.attr("x1", (d) -> d.source.x)
+	# 		.attr("y1", (d) -> d.source.y)
+	# 		.attr("x2", (d) -> d.target.x)
+	# 		.attr("y2", (d) -> d.target.y)
 
-		link.exit().remove()
+	# 	link.exit().remove()
 
 	# transform to internal filter representation
 	setCurConcept = (newConcept) ->
@@ -187,11 +187,11 @@ Network = () ->
 		node
 			.attr("transform", (d, i) -> "translate(" + d.x + "," + d.y + ")")
 
-		link
-			.attr("x1", (d) -> d.source.x)
-			.attr("y1", (d) -> d.source.y)
-			.attr("x2", (d) -> d.target.x)
-			.attr("y2", (d) -> d.target.y)
+		# link
+		# 	.attr("x1", (d) -> d.source.x)
+		# 	.attr("y1", (d) -> d.source.y)
+		# 	.attr("x2", (d) -> d.target.x)
+		# 	.attr("y2", (d) -> d.target.y)
 
 	showDetails = (d, i) ->
 		d3.select(this).select('circle')

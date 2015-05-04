@@ -2,7 +2,7 @@
   var Network;
 
   Network = function() {
-    var allNodes, colorBy, conceptToId, curConcept, curLinksData, curNodesData, difArray, documents, filterLinks, filterNodes, force, forceTick, formatLabelText, height, hideDetails, idToConcept, link, linkedByIndex, linksG, navigateNewConcept, network, node, nodesG, printResultList, radiusScale, setCurConcept, setupData, showDetails, update, updateLinks, updateNodes, width;
+    var allNodes, colorBy, conceptToId, curConcept, curLinksData, curNodesData, difArray, documents, filterNodes, force, forceTick, formatLabelText, height, hideDetails, idToConcept, linkedByIndex, navigateNewConcept, network, node, nodesG, printResultList, radiusScale, setCurConcept, setupData, showDetails, update, updateNodes, width;
     width = 500;
     height = 500;
     radiusScale = d3.scale.linear().range([20, 30]).domain([0, 200]);
@@ -14,30 +14,22 @@
     idToConcept = null;
     documents = null;
     nodesG = null;
-    linksG = null;
     node = null;
-    link = null;
     curConcept = null;
     force = d3.layout.force();
     network = function(selection, data) {
       var vis;
       setupData(data);
       vis = d3.select(selection).append("svg").attr("width", width).attr("height", height);
-      linksG = vis.append("g").attr("id", "links");
       nodesG = vis.append("g").attr("id", "nodes");
-      force.on("tick", forceTick).charge(-500).linkDistance(function(d) {
-        return d.weight;
-      }).size([width, height]);
+      force.on("tick", forceTick).charge(-100).size([width, height]);
       return update();
     };
     update = function() {
       var conceptName;
       curNodesData = filterNodes(allNodes);
-      curLinksData = filterLinks(curNodesData);
       force.nodes(curNodesData);
       updateNodes();
-      force.links(curLinksData);
-      updateLinks();
       force.start();
       if (curConcept) {
         printResultList();
@@ -96,28 +88,6 @@
       }
       return filterdNodes;
     };
-    filterLinks = function(curNodes) {
-      var curLinks, idToCurNodes, j, k, len, len1, n, pId, randomnumber, ref;
-      curLinks = [];
-      idToCurNodes = d3.map(curNodes, function(x) {
-        return x.id;
-      });
-      for (j = 0, len = curNodes.length; j < len; j++) {
-        n = curNodes[j];
-        ref = n.childrenNames;
-        for (k = 0, len1 = ref.length; k < len1; k++) {
-          pId = ref[k];
-          if (idToCurNodes.get(pId)) {
-            curLinks.push({
-              'source': idToConcept.get(n.id),
-              'target': idToConcept.get(pId),
-              'weight': randomnumber = Math.floor(Math.random() * height) / 2
-            });
-          }
-        }
-      }
-      return curLinks;
-    };
     difArray = function(x, y) {
       return x.filter(function(z) {
         return y.indexOf(z) < 0;
@@ -153,38 +123,14 @@
       node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", navigateNewConcept);
       return node.exit().remove();
     };
-    updateLinks = function() {
-      link = linksG.selectAll("line.link").data(curLinksData, function(d) {
-        return d.source.id + "_" + d.target.id;
-      });
-      link.enter().append("line").attr("class", "link").attr("stroke", "#ddd").attr("stroke-opacity", 0.8).attr("x1", function(d) {
-        return d.source.x;
-      }).attr("y1", function(d) {
-        return d.source.y;
-      }).attr("x2", function(d) {
-        return d.target.x;
-      }).attr("y2", function(d) {
-        return d.target.y;
-      });
-      return link.exit().remove();
-    };
     setCurConcept = function(newConcept) {
       var conceptProccessed;
       conceptProccessed = newConcept.sort();
       return curConcept = conceptToId.get(conceptProccessed);
     };
     forceTick = function(e) {
-      node.attr("transform", function(d, i) {
+      return node.attr("transform", function(d, i) {
         return "translate(" + d.x + "," + d.y + ")";
-      });
-      return link.attr("x1", function(d) {
-        return d.source.x;
-      }).attr("y1", function(d) {
-        return d.source.y;
-      }).attr("x2", function(d) {
-        return d.target.x;
-      }).attr("y2", function(d) {
-        return d.target.y;
       });
     };
     showDetails = function(d, i) {
