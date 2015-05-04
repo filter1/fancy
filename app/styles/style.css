@@ -1,7 +1,7 @@
 #search-bar {
   margin: 1em 0; }
 
-text {
+.node {
   text-anchor: middle; }
 
 svg {

@@ -25,7 +25,6 @@
       vis = d3.select(selection).append("svg").attr("width", width).attr("height", height);
       linksG = vis.append("g").attr("id", "links");
       nodesG = vis.append("g").attr("id", "nodes");
-      force.size([width, height]);
       force.on("tick", forceTick).charge(-500).linkDistance(function(d) {
         return d.weight;
       }).size([width, height]);
@@ -140,16 +139,17 @@
       return 'white';
     };
     updateNodes = function() {
-      node = nodesG.selectAll("g.xxx").data(curNodesData, function(d) {
+      node = nodesG.selectAll("g.node").data(curNodesData, function(d) {
         return d.id;
       });
-      node.enter().append('g').attr('class', 'xxx').call(force.drag);
-      node.append("circle").attr("class", "node").attr("r", function(d) {
+      node.enter().append('g').attr('class', 'node').call(force.drag);
+      node.selectAll("*").remove();
+      node.append("circle").attr("r", function(d) {
         return d.radius;
       }).style("fill", colorBy).style("stroke", '#555').style("stroke-width", 1.0);
       node.append("text").text(function(x) {
         return formatLabelText(x.intensionNames, curConcept.intensionNames);
-      }).attr('class', 'label');
+      });
       node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", navigateNewConcept);
       return node.exit().remove();
     };

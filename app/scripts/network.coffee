@@ -35,15 +35,12 @@ Network = () ->
 		linksG = vis.append("g").attr("id", "links")
 		nodesG = vis.append("g").attr("id", "nodes")
 
-		force.size([width, height])
+		# force.size([width, height])
 
 		force.on("tick", forceTick)
 			.charge(-500)
 			.linkDistance( (d) -> d.weight)
 			.size([width, height])
-
-			# debug
-		# setCurConcept = ['aguada']
 
 		update()
 
@@ -61,13 +58,11 @@ Network = () ->
 
 		if curConcept
 			printResultList()
-
 			conceptName = curConcept.intensionNames.join ' '
 			$('#search-bar input').val conceptName
 
 	printResultList = ->
 		details = $('#details').text ''
-			# .append "<h3>#{conceptName}</h3>"
 			.append "#{curConcept.extensionNames.length} results<br>"
 		
 		i = 1
@@ -86,8 +81,6 @@ Network = () ->
 		# the "gi" stands for global (all occurences) and i for case insensitive
 		reg = curConcept.intensionNames. join '|'
 		details.html details.html().replace(new RegExp(reg, "gi"),'<strong>$&</strong>')
-
-
 
 	network.toggleFilter = (newFilter) ->
 		force.stop()
@@ -141,26 +134,28 @@ Network = () ->
 			return 'orange'
 		return 'white'
 
-	updateNodes = () ->
-		node = nodesG.selectAll("g.xxx")
+	updateNodes = ->
+		node = nodesG.selectAll "g.node"
 			.data(curNodesData, (d) -> d.id)
 		
 		node.enter()
-			.append('g')
-			.attr('class', 'xxx')
-			# .attr('cy', 0)
-			.call(force.drag)
+			.append 'g'
+			.attr('class', 'node')
+			.call force.drag
 
-		node.append("circle")
-			.attr("class", "node")
+		# TODO: fix, this is a hack
+		# Without removing the elements, we would insert a new circle
+		# and text every time we update the graph.
+		node.selectAll("*").remove()
+
+		node.append "circle"
 			.attr("r", (d) -> d.radius)
 			.style("fill", colorBy)
 			.style("stroke", '#555')
 			.style("stroke-width", 1.0)
 
-		node.append("text")
+		node.append "text"
 			.text((x) -> formatLabelText(x.intensionNames, curConcept.intensionNames))
-			.attr('class', 'label')
 
 		node.on("mouseover", showDetails)
 			.on("mouseout", hideDetails)
@@ -168,7 +163,7 @@ Network = () ->
 
 		node.exit().remove()
 
-	updateLinks = () ->
+	updateLinks = ->
 		link = linksG.selectAll("line.link")
 			.data(curLinksData, (d) -> "#{d.source.id}_#{d.target.id}")
 
