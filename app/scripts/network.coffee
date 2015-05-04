@@ -1,19 +1,19 @@
 Network = () ->
 	width = 500
 	height = 500
-	circleRadius = 20
 
 	radiusScale = d3.scale.linear().range([20,30]).domain([0, 200])
 
-	allObjects = []
 	allNodes = []
 
 	curLinksData = []
 	curNodesData = []
 	linkedByIndex = {}
 
+	# d3 dicts will be setup at init
 	conceptToId = null
 	idToConcept = null
+	documents = null
 
 	nodesG = null
 	linksG = null
@@ -43,7 +43,7 @@ Network = () ->
 			.size([width, height])
 
 			# debug
-		setCurConcept = ['aguada']
+		# setCurConcept = ['aguada']
 
 		update()
 
@@ -60,9 +60,20 @@ Network = () ->
 		force.start()
 
 		if curConcept
-			$('#details').text('')
-				.append("<h3>" + curConcept.name + '</h3>')
-				.append(curConcept.documents)
+			conceptName = curConcept.intensionNames.join ' '
+			details = $('#details').text ''
+				.append "<h3>#{conceptName}</h3>"
+			
+			for docId in curConcept.extensionNames
+				doc = documents.get(docId)
+				details.append "<h4>#{doc.title}</h4>"
+					.append "<p>#{doc.content}</p>"
+					.append "<p>#{doc.notes}</p>"
+					.append "<p>#{doc.references}</p>"
+					.append "<p>#{doc.materia}</p>"
+					.append "<p>#{doc.language}</p>"
+					.append "<p>#{doc.nes}, #{doc.nes_location}, #{doc.nes_mis}, #{doc.nes_organization}, #{doc.nes_person}</p>"
+
 
 	network.toggleFilter = (newFilter) ->
 		force.stop()
@@ -71,17 +82,17 @@ Network = () ->
 		
 	setupData = (data) ->
 		nodes = data.lattice
-		objects = data.objects
 
 		nodes.forEach (n) -> 
 			n.radius = radiusScale(n.extensionNames.length)
 
-		idToConcept = d3.map(nodes, (n) -> n.id)
+		idToConcept = d3.map(nodes, (x) -> x.id)
 		conceptToId = d3.map(nodes, (x) -> x.intensionNames.sort())
+		documents = d3.map(data.objects, (x) -> x.id)
+
+		console.log documents
 
 		allNodes = nodes
-		allObjects = objects
-
 
 	filterNodes = (allNodes) ->
 		filterdNodes = []
@@ -166,17 +177,12 @@ Network = () ->
 	forceTick = (e) ->
 		node
 			.attr("transform", (d, i) -> "translate(" + d.x + "," + d.y + ")")
-			# .attr("transform", (d, i) -> "translate(" + d.x + "," + 0.5*d.y + ")")
 
 		link
 			.attr("x1", (d) -> d.source.x)
-			# .attr("x1", (d) -> 1.5*d.source.x)
 			.attr("y1", (d) -> d.source.y)
-			# .attr("y1", (d) -> 0.5*d.source.y)
 			.attr("x2", (d) -> d.target.x)
-			# .attr("x2", (d) -> 1.5*d.target.x)
 			.attr("y2", (d) -> d.target.y)
-			# .attr("y2", (d) -> 0.5*d.target.y)
 
 	showDetails = (d, i) ->
 		d3.select(this).select('circle')
@@ -189,7 +195,7 @@ Network = () ->
 	navigateNewConcept = (d, i) ->
 		network.toggleFilter(d.intensionNames)
 
-	return network
+	network
 
 $ ->
 	myNetwork = Network()

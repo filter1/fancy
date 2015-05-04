@@ -2,18 +2,17 @@
   var Network;
 
   Network = function() {
-    var allNodes, allObjects, circleRadius, colorBy, conceptToId, curConcept, curLinksData, curNodesData, difArray, filterLinks, filterNodes, force, forceTick, formatLabelText, height, hideDetails, idToConcept, link, linkedByIndex, linksG, navigateNewConcept, network, node, nodesG, radiusScale, setCurConcept, setupData, showDetails, update, updateLinks, updateNodes, width;
+    var allNodes, colorBy, conceptToId, curConcept, curLinksData, curNodesData, difArray, documents, filterLinks, filterNodes, force, forceTick, formatLabelText, height, hideDetails, idToConcept, link, linkedByIndex, linksG, navigateNewConcept, network, node, nodesG, radiusScale, setCurConcept, setupData, showDetails, update, updateLinks, updateNodes, width;
     width = 500;
     height = 500;
-    circleRadius = 20;
     radiusScale = d3.scale.linear().range([20, 30]).domain([0, 200]);
-    allObjects = [];
     allNodes = [];
     curLinksData = [];
     curNodesData = [];
     linkedByIndex = {};
     conceptToId = null;
     idToConcept = null;
+    documents = null;
     nodesG = null;
     linksG = null;
     node = null;
@@ -21,7 +20,7 @@
     curConcept = null;
     force = d3.layout.force();
     network = function(selection, data) {
-      var setCurConcept, vis;
+      var vis;
       setupData(data);
       vis = d3.select(selection).append("svg").attr("width", width).attr("height", height);
       linksG = vis.append("g").attr("id", "links");
@@ -30,10 +29,10 @@
       force.on("tick", forceTick).charge(-500).linkDistance(function(d) {
         return d.weight;
       }).size([width, height]);
-      setCurConcept = ['aguada'];
       return update();
     };
     update = function() {
+      var conceptName, details, doc, docId, j, len, ref, results;
       curNodesData = filterNodes(allNodes);
       curLinksData = filterLinks(curNodesData);
       force.nodes(curNodesData);
@@ -42,7 +41,16 @@
       updateLinks();
       force.start();
       if (curConcept) {
-        return $('#details').text('').append("<h3>" + curConcept.name + '</h3>').append(curConcept.documents);
+        conceptName = curConcept.intensionNames.join(' ');
+        details = $('#details').text('').append("<h3>" + conceptName + "</h3>");
+        ref = curConcept.extensionNames;
+        results = [];
+        for (j = 0, len = ref.length; j < len; j++) {
+          docId = ref[j];
+          doc = documents.get(docId);
+          results.push(details.append("<h4>" + doc.title + "</h4>").append("<p>" + doc.content + "</p>").append("<p>" + doc.notes + "</p>").append("<p>" + doc.references + "</p>").append("<p>" + doc.materia + "</p>").append("<p>" + doc.language + "</p>").append("<p>" + doc.nes + ", " + doc.nes_location + ", " + doc.nes_mis + ", " + doc.nes_organization + ", " + doc.nes_person + "</p>"));
+        }
+        return results;
       }
     };
     network.toggleFilter = function(newFilter) {
@@ -51,20 +59,22 @@
       return update();
     };
     setupData = function(data) {
-      var nodes, objects;
+      var nodes;
       nodes = data.lattice;
-      objects = data.objects;
       nodes.forEach(function(n) {
         return n.radius = radiusScale(n.extensionNames.length);
       });
-      idToConcept = d3.map(nodes, function(n) {
-        return n.id;
+      idToConcept = d3.map(nodes, function(x) {
+        return x.id;
       });
       conceptToId = d3.map(nodes, function(x) {
         return x.intensionNames.sort();
       });
-      allNodes = nodes;
-      return allObjects = objects;
+      documents = d3.map(data.objects, function(x) {
+        return x.id;
+      });
+      console.log(documents);
+      return allNodes = nodes;
     };
     filterNodes = function(allNodes) {
       var filterdNodes;
