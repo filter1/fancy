@@ -2,6 +2,7 @@ var gulp = require('gulp'),
   connect = require('gulp-connect'),
   watch = require('gulp-watch'),
   coffee = require('gulp-coffee'),
+  sass = require('gulp-sass'),
   uglify  = require('gulp-uglify'),
   concat  = require('gulp-concat');
  
@@ -24,18 +25,18 @@ gulp.task('coffee', function() {
     .pipe(connect.reload());
 });
 
+gulp.task('sass', function() {
+  gulp.src('app/styles/*.scss')
+    .pipe(sass({errLogToConsole: true}))
+    .pipe(gulp.dest('app/styles'))
+    .pipe(connect.reload());
+});
+
 // can add more here
 gulp.task('watch', function() {
   gulp.watch('app/scripts/*.coffee', ['coffee'])
-})
+  gulp.watch('app/styles/*.scss', ['sass'])
 
-// TODO: all
-gulp.task('minScripts', function() {
-	gulp.src('app/scripts/*.js')
-		.pipe(uglify())
-		.pipe(concat('all.min.js'))
-		.pipe(gulp.dest('app/scripts'));
 });
 
-
-gulp.task('default', ['coffee', 'webserver', 'livereload', 'watch']);
+gulp.task('default', ['coffee', 'sass', 'webserver', 'livereload', 'watch']);
