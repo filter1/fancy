@@ -4,5 +4,11 @@
 .node {
   text-anchor: middle; }
 
-svg {
-  border: 1px solid black; }
+.count {
+  font-size: 0.75em; }
+
+#vis {
+  height: 100%; }
+
+#details {
+  overflow: auto; }
