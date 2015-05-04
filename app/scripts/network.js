@@ -2,7 +2,7 @@
   var Network;
 
   Network = function() {
-    var allNodes, colorBy, conceptToId, curConcept, curLinksData, curNodesData, difArray, documents, filterLinks, filterNodes, force, forceTick, formatLabelText, height, hideDetails, idToConcept, link, linkedByIndex, linksG, navigateNewConcept, network, node, nodesG, radiusScale, setCurConcept, setupData, showDetails, update, updateLinks, updateNodes, width;
+    var allNodes, colorBy, conceptToId, curConcept, curLinksData, curNodesData, difArray, documents, filterLinks, filterNodes, force, forceTick, formatLabelText, height, hideDetails, idToConcept, link, linkedByIndex, linksG, navigateNewConcept, network, node, nodesG, printResultList, radiusScale, setCurConcept, setupData, showDetails, update, updateLinks, updateNodes, width;
     width = 500;
     height = 500;
     radiusScale = d3.scale.linear().range([20, 30]).domain([0, 200]);
@@ -32,7 +32,7 @@
       return update();
     };
     update = function() {
-      var conceptName, details, doc, docId, j, len, ref, results;
+      var conceptName;
       curNodesData = filterNodes(allNodes);
       curLinksData = filterLinks(curNodesData);
       force.nodes(curNodesData);
@@ -41,17 +41,24 @@
       updateLinks();
       force.start();
       if (curConcept) {
+        printResultList();
         conceptName = curConcept.intensionNames.join(' ');
-        details = $('#details').text('').append("<h3>" + conceptName + "</h3>");
-        ref = curConcept.extensionNames;
-        results = [];
-        for (j = 0, len = ref.length; j < len; j++) {
-          docId = ref[j];
-          doc = documents.get(docId);
-          results.push(details.append("<h4>" + doc.title + "</h4>").append("<p>" + doc.content + "</p>").append("<p>" + doc.notes + "</p>").append("<p>" + doc.references + "</p>").append("<p>" + doc.materia + "</p>").append("<p>" + doc.language + "</p>").append("<p>" + doc.nes + ", " + doc.nes_location + ", " + doc.nes_mis + ", " + doc.nes_organization + ", " + doc.nes_person + "</p>"));
-        }
-        return results;
+        return $('#search-bar input').val(conceptName);
       }
+    };
+    printResultList = function() {
+      var details, doc, docId, i, j, len, ref, reg;
+      details = $('#details').text('').append(curConcept.extensionNames.length + " results<br>");
+      i = 1;
+      ref = curConcept.extensionNames;
+      for (j = 0, len = ref.length; j < len; j++) {
+        docId = ref[j];
+        doc = documents.get(docId);
+        details.append("<h4>" + i + ". " + doc.title + "</h4>").append("<p>" + doc.content + "</p>").append("<p>" + doc.notes + "</p>").append("<p>" + doc.references + "</p>").append("<p>" + doc.materia + "</p>").append("<p>" + doc.language + "</p>").append("<p>" + doc.nes + ", " + doc.nes_location + ", " + doc.nes_mis + ", " + doc.nes_organization + ", " + doc.nes_person + "</p>");
+        i += 1;
+      }
+      reg = curConcept.intensionNames.join('|');
+      return details.html(details.html().replace(new RegExp(reg, "gi"), '<strong>$&</strong>'));
     };
     network.toggleFilter = function(newFilter) {
       force.stop();
