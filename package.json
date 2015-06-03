@@ -2,8 +2,10 @@
   "name": "fancy",
   "version": "1.0.0",
   "description": "Fancy visualisation for FCA",
-  "main": "index.js",
+  "main": "app.js",
   "dependencies": {
+    "express": "^4.12.4",
+    "jade": "^1.10.0"
   },
   "devDependencies": {
     "gulp": "^3.8.11",
@@ -17,13 +19,14 @@
     "gulp-watch": "^4.2.4"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app/app.js"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/filter1/fancy.git"
   },
-  "author": "",
+  "author": "Johannes Filter",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/filter1/fancy/issues"
