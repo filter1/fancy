@@ -47,4 +47,25 @@ gulp.task('watch', function() {
   gulp.watch('app/styles/*.scss', ['sass'])
 });
 
-gulp.task('default', ['watch']);
+
+var browserSync = require('browser-sync');
+var nodemon = require('gulp-nodemon');
+  
+gulp.task('browser-sync', ['nodemon'], function() {
+  browserSync.init(null, {
+    proxy: "http://localhost:3000",
+        files: ["app/public/**/*.*"],
+        browser: "google chrome",
+        port: 8080,
+  });
+});
+ 
+gulp.task('nodemon', function (cb) {
+  return nodemon({
+    script: 'app/app.js'
+  }).on('start', function () {
+      cb();
+  });
+});
+
+gulp.task('default', ['watch', 'browser-sync']);

@@ -4,7 +4,9 @@
   "description": "Fancy visualisation for FCA",
   "main": "app.js",
   "dependencies": {
+    "browser-sync": "^2.7.6",
     "express": "^4.12.4",
+    "gulp-nodemon": "^2.0.3",
     "jade": "^1.10.0"
   },
   "devDependencies": {
