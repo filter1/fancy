@@ -32,13 +32,6 @@ gulp.task('coffee-app', function() {
     // .pipe(connect.reload());
 });
 
-gulp.task('coffee-public', function() {
-  gulp.src('app/public/scripts/*.coffee')
-    .pipe(coffee())
-    .pipe(gulp.dest('app/public/scripts'));
-    // .pipe(connect.reload());
-});
-
 
 gulp.task('sass', function() {
   gulp.src('app/public/styles/*.scss')
