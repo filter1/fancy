@@ -1,5 +1,5 @@
-#search-bar {
-	margin: 1em 0;
+body {
+	padding: 0 1em;
 }
 
 .node {
@@ -20,4 +20,8 @@
 
 #details {
 	overflow: auto;
+}
+
+.alert {
+	text-align: center;
 }

@@ -1,0 +1,35 @@
+doctype html
+html(lang="en")
+	head
+		title Network
+		meta(charset="utf-8")
+		meta(name="viewport", content="width=device-width, initial-scale=1")
+
+		link(rel="stylesheet", href="bower_components/bootstrap/dist/css/bootstrap.min.css")
+		link(rel="stylesheet", href="bower_components/bootstrap/dist/css/bootstrap-theme.min.css")
+		link(rel="stylesheet" type="text/css" href="styles/style.css")
+
+	body
+		.container-fluid
+			.row
+				if alert
+					.alert.alert-success #{alert}
+				ul.nav.nav-pills.pull-right(role="tablist")
+					li
+						if userName
+							a(href='/user') #{userName}
+						else
+							a(href='/login') Login
+					li
+						a(href='#') Infos
+					if userName
+						li
+							a(href='/logout') Logout
+
+
+			block content
+
+		script(src="bower_components/jquery/dist/jquery.min.js")
+		script(src="bower_components/d3/d3.min.js")
+		script(src="bower_components/bootstrap/dist/js/bootstrap.min.js")
+		script(type="text/javascript" src="scripts/network.js")
