@@ -29,6 +29,7 @@ Network = () ->
 
 	# initialize without any concept
 	curConcept = null
+	curConceptSearchOrder = null
 
 	force = d3.layout.force()
 
@@ -45,7 +46,6 @@ Network = () ->
 
 		vis.call(zoom)
 
-
 		force.on("tick", forceTick)
 			.size([width, height])
 			.gravity(0)
@@ -61,10 +61,11 @@ Network = () ->
 
 		force.start()
 
+		# if already something set - no start
 		if curConcept
 			printResultList()
-			conceptName = curConcept.intensionNames.join ' '
-			$('#search-bar input').val conceptName
+			$('#search-bar input').val curConceptSearchOrder
+			$('#headline').val curConceptSearchOrder
 
 	printResultList = ->
 		details = $('#details').text ''
@@ -87,9 +88,9 @@ Network = () ->
 		reg = curConcept.intensionNames. join '|'
 		details.html details.html().replace(new RegExp(reg, "gi"),'<strong>$&</strong>')
 
-	network.toggleFilter = (newFilter) ->
+	network.applyNewConceptToNetwork = (newConcept) ->
 		force.stop()
-		setCurConcept(newFilter)
+		setCurConcept(newConcept)
 		update()
 		
 	setupData = (data) ->
@@ -110,20 +111,8 @@ Network = () ->
 		filterdNodes = []
 		if curConcept
 			# filterdNodes.push(curConcept)
-			filterdNodes = filterdNodes.concat curConcept.parentNames.map (x) -> idToConcept.get x
+			# filterdNodes = filterdNodes.concat curConcept.parentNames.map (x) -> idToConcept.get x
 			filterdNodes = filterdNodes.concat curConcept.childrenNames.map (x) -> idToConcept.get x
-
-		# 	for node in filterdNodes
-		# 		for x in node.childrenNames
-		# 			con = idToConcept.get x
-		# 			if not filterdNodes.some( (y) -> con.intensionNames == y.intensionNames )
-		# 				filterdNodes.push con
-		# 			else
-		# 				console.log 'sorted'
-
-		# filterdNodes = filterdNodes.filter (x) -> x.extensionNames.length > 50;
-
-		# console.log filterdNodes.length
 			
 		filterdNodes
 
@@ -131,19 +120,19 @@ Network = () ->
 		x.filter (z) -> y.indexOf(z) < 0
 
 	createLabels = (x, y) ->
-		if x.length > y.length
+		# if x.length > y.length
 			whatIsInXButNotInY(x, y)
-		else
-			whatIsInXButNotInY(y, x)
+		# else
+		# 	whatIsInXButNotInY(y, x)
 
 	formatLabelText = (node) ->
 		text = createLabels(node.intensionNames, curConcept.intensionNames)
 
-	strikeThru = (d) ->
-		if d.intensionNames.length < curConcept.intensionNames.length
-			'line-through'
-		else
-			'none'
+	# strikeThru = (d) ->
+	# 	if d.intensionNames.length < curConcept.intensionNames.length
+	# 		'line-through'
+	# 	else
+	# 		'none'
 
 	updateNodes = ->
 		node = nodesG.selectAll "g.node"
@@ -169,7 +158,7 @@ Network = () ->
 			.text(formatLabelText)
 			.attr("class", "nodeLabel")
 			.style("font-size", (x) ->"#{fontScale(x.extensionNames.length)}px")
-			.attr("text-decoration", strikeThru)
+			# .attr("text-decoration", strikeThru)
 
 		node.append "text"
 			.text((x) -> x.extensionNames.length)
@@ -185,8 +174,9 @@ Network = () ->
 
 	# transform to internal filter representation
 	setCurConcept = (newConcept) ->
-		conceptProccessed = newConcept.sort()
+		conceptProccessed = (c.toLowerCase() for c in newConcept).sort()
 		curConcept = conceptToId.get conceptProccessed
+		curConceptSearchOrder = newConcept.join ' '
 
 	forceTick = (e) ->
 		dampenAlpha = e.alpha * 0.1
@@ -262,9 +252,9 @@ Network = () ->
 		node.select('text').style("font-weight", "normal")
 			# .style("font-size", "1em")
 	
-
 	navigateNewConcept = (d, i) ->
-		network.toggleFilter(d.intensionNames)
+		network.applyNewConceptToNetwork(d.intensionNames)
+
 
 	network
 
@@ -278,9 +268,17 @@ $ ->
 	d3.json "lattice.json", (json) ->
 		myNetwork("#vis", json)
 
-	$('#searchButton').click ->
-		newFilter = $('#searchText').val().split(' ')
-		myNetwork.toggleFilter(newFilter)
+	searchSubmit = ->
+		newConcept = $('#searchText').val().split(' ')
+		myNetwork.applyNewConceptToNetwork(newConcept)
+
+	$('#searchButton').click -> searchSubmit()
+
+	$('#searchText').keypress (e) ->
+		if e.which == 13
+			searchSubmit()
+			return false	
+
 
 
 

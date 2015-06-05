@@ -2,7 +2,7 @@
   var Network;
 
   Network = function() {
-    var allNodes, collide, collisionPadding, conceptToId, createLabels, curConcept, curLinksData, curNodesData, documents, filterNodes, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, navigateNewConcept, network, node, nodesG, printResultList, radiusScale, setCurConcept, setupData, showDetails, strikeThru, update, updateNodes, whatIsInXButNotInY, width, zoomed;
+    var allNodes, collide, collisionPadding, conceptToId, createLabels, curConcept, curConceptSearchOrder, curLinksData, curNodesData, documents, filterNodes, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, navigateNewConcept, network, node, nodesG, printResultList, radiusScale, setCurConcept, setupData, showDetails, update, updateNodes, whatIsInXButNotInY, width, zoomed;
     width = parseInt(d3.select("#vis").style("width"));
     height = parseInt(d3.select("#vis").style("height"));
     jitter = 0.5;
@@ -22,6 +22,7 @@
     nodesG = null;
     node = null;
     curConcept = null;
+    curConceptSearchOrder = null;
     force = d3.layout.force();
     network = function(selection, data) {
       var vis, zoom;
@@ -34,15 +35,14 @@
       return update();
     };
     update = function() {
-      var conceptName;
       curNodesData = filterNodes(allNodes);
       force.nodes(curNodesData);
       updateNodes();
       force.start();
       if (curConcept) {
         printResultList();
-        conceptName = curConcept.intensionNames.join(' ');
-        return $('#search-bar input').val(conceptName);
+        $('#search-bar input').val(curConceptSearchOrder);
+        return $('#headline').val(curConceptSearchOrder);
       }
     };
     printResultList = function() {
@@ -59,9 +59,9 @@
       reg = curConcept.intensionNames.join('|');
       return details.html(details.html().replace(new RegExp(reg, "gi"), '<strong>$&</strong>'));
     };
-    network.toggleFilter = function(newFilter) {
+    network.applyNewConceptToNetwork = function(newConcept) {
       force.stop();
-      setCurConcept(newFilter);
+      setCurConcept(newConcept);
       return update();
     };
     setupData = function(data) {
@@ -88,9 +88,6 @@
       var filterdNodes;
       filterdNodes = [];
       if (curConcept) {
-        filterdNodes = filterdNodes.concat(curConcept.parentNames.map(function(x) {
-          return idToConcept.get(x);
-        }));
         filterdNodes = filterdNodes.concat(curConcept.childrenNames.map(function(x) {
           return idToConcept.get(x);
         }));
@@ -103,22 +100,11 @@
       });
     };
     createLabels = function(x, y) {
-      if (x.length > y.length) {
-        return whatIsInXButNotInY(x, y);
-      } else {
-        return whatIsInXButNotInY(y, x);
-      }
+      return whatIsInXButNotInY(x, y);
     };
     formatLabelText = function(node) {
       var text;
       return text = createLabels(node.intensionNames, curConcept.intensionNames);
-    };
-    strikeThru = function(d) {
-      if (d.intensionNames.length < curConcept.intensionNames.length) {
-        return 'line-through';
-      } else {
-        return 'none';
-      }
     };
     updateNodes = function() {
       node = nodesG.selectAll("g.node").data(curNodesData, function(d) {
@@ -131,7 +117,7 @@
       }).style("stroke", '#dfdfdf').style("stroke-width", 1).style("fill", "white");
       node.append("text").text(formatLabelText).attr("class", "nodeLabel").style("font-size", function(x) {
         return (fontScale(x.extensionNames.length)) + "px";
-      }).attr("text-decoration", strikeThru);
+      });
       node.append("text").text(function(x) {
         return x.extensionNames.length;
       }).attr("class", "count").attr("dy", "1.1em");
@@ -139,9 +125,18 @@
       return node.exit().remove();
     };
     setCurConcept = function(newConcept) {
-      var conceptProccessed;
-      conceptProccessed = newConcept.sort();
-      return curConcept = conceptToId.get(conceptProccessed);
+      var c, conceptProccessed;
+      conceptProccessed = ((function() {
+        var j, len, results;
+        results = [];
+        for (j = 0, len = newConcept.length; j < len; j++) {
+          c = newConcept[j];
+          results.push(c.toLowerCase());
+        }
+        return results;
+      })()).sort();
+      curConcept = conceptToId.get(conceptProccessed);
+      return curConceptSearchOrder = newConcept.join(' ');
     };
     forceTick = function(e) {
       var dampenAlpha;
@@ -200,23 +195,32 @@
       return node.select('text').style("font-weight", "normal");
     };
     navigateNewConcept = function(d, i) {
-      return network.toggleFilter(d.intensionNames);
+      return network.applyNewConceptToNetwork(d.intensionNames);
     };
     return network;
   };
 
   $(function() {
-    var adaptHeight, myNetwork;
+    var adaptHeight, myNetwork, searchSubmit;
     adaptHeight = $(window).height() - $('#search-bar').outerHeight(true);
     $('.col-md-6, #viz').height(adaptHeight);
     myNetwork = Network();
     d3.json("lattice.json", function(json) {
       return myNetwork("#vis", json);
     });
-    return $('#searchButton').click(function() {
-      var newFilter;
-      newFilter = $('#searchText').val().split(' ');
-      return myNetwork.toggleFilter(newFilter);
+    searchSubmit = function() {
+      var newConcept;
+      newConcept = $('#searchText').val().split(' ');
+      return myNetwork.applyNewConceptToNetwork(newConcept);
+    };
+    $('#searchButton').click(function() {
+      return searchSubmit();
+    });
+    return $('#searchText').keypress(function(e) {
+      if (e.which === 13) {
+        searchSubmit();
+        return false;
+      }
     });
   });
 
