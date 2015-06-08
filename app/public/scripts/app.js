@@ -1,9 +1,33 @@
 (function() {
-  var Network,
+  var Network, adaptQueryRepresentation, whatIsInXButNotInY,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
+  $(function() {
+    var adaptHeight, myNetwork, searchSubmit;
+    adaptHeight = $(window).height() - $('#search-bar').outerHeight(true);
+    $('.col-md-6, #viz').height(adaptHeight);
+    myNetwork = Network();
+    d3.json("lattice.json", function(json) {
+      return myNetwork("#vis", json);
+    });
+    searchSubmit = function() {
+      var newConcept;
+      newConcept = $('#searchText').val().split(' ');
+      return myNetwork.applyNewConceptToNetwork(newConcept);
+    };
+    $('#searchButton').click(function() {
+      return searchSubmit();
+    });
+    return $('#searchText').keypress(function(e) {
+      if (e.which === 13) {
+        searchSubmit();
+        return false;
+      }
+    });
+  });
+
   Network = function() {
-    var allNodes, collide, collisionPadding, conceptToId, createLabels, curConcept, curConceptListOfStringsInOrder, curLinksData, curNodesData, documents, filterNodes, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, navigateNewConcept, network, node, nodesG, printResultList, radiusScale, setCurConcept, setupData, showDetails, update, updateNodes, whatIsInXButNotInY, width, zoomed;
+    var allNodes, collide, collisionPadding, conceptToId, createLabels, curConcept, curConceptAsListInOrderOfNavigation, curLinksData, curNodesData, documents, filterNodes, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, navigateNewConcept, network, node, nodesG, printResultList, radiusScale, setupData, showDetails, update, updateNodes, width, zoomed;
     width = parseInt(d3.select("#vis").style("width"));
     height = parseInt(d3.select("#vis").style("height"));
     jitter = 0.5;
@@ -23,7 +47,7 @@
     nodesG = null;
     node = null;
     curConcept = null;
-    curConceptListOfStringsInOrder = null;
+    curConceptAsListInOrderOfNavigation = null;
     force = d3.layout.force();
     network = function(selection, data) {
       var vis, zoom;
@@ -42,7 +66,7 @@
       force.start();
       if (curConcept) {
         printResultList();
-        return $('#search-bar input').val(curConceptListOfStringsInOrder.join(' '));
+        return $('#search-bar input').val(curConceptAsListInOrderOfNavigation.join(' '));
       }
     };
     printResultList = function() {
@@ -59,43 +83,20 @@
       reg = curConcept.intensionNames.join('|');
       return details.html(details.html().replace(new RegExp(reg, "gi"), '<strong>$&</strong>'));
     };
-    network.applyNewConceptToNetwork = function(newConceptListOfStrings) {
-      var c, conceptProccessed, w, whatIsNew;
+    network.applyNewConceptToNetwork = function(newConceptList) {
+      var c, conceptProccessed;
       force.stop();
       conceptProccessed = ((function() {
         var j, len, results;
         results = [];
-        for (j = 0, len = newConceptListOfStrings.length; j < len; j++) {
-          c = newConceptListOfStrings[j];
+        for (j = 0, len = newConceptList.length; j < len; j++) {
+          c = newConceptList[j];
           results.push(c.toLowerCase());
         }
         return results;
       })()).sort();
       curConcept = conceptToId.get(conceptProccessed);
-      if (curConceptListOfStringsInOrder) {
-        if (newConceptListOfStrings.length > curConceptListOfStringsInOrder.length) {
-          whatIsNew = whatIsInXButNotInY(newConceptListOfStrings, curConceptListOfStringsInOrder);
-          if (whatIsNew.length === newConceptListOfStrings.length) {
-            curConceptListOfStringsInOrder = newConceptListOfStrings;
-          } else {
-            curConceptListOfStringsInOrder = curConceptListOfStringsInOrder.concat(whatIsNew);
-          }
-        } else {
-          curConceptListOfStringsInOrder = (function() {
-            var j, len, results;
-            results = [];
-            for (j = 0, len = curConceptListOfStringsInOrder.length; j < len; j++) {
-              w = curConceptListOfStringsInOrder[j];
-              if (indexOf.call(newConceptListOfStrings, w) >= 0) {
-                results.push(w);
-              }
-            }
-            return results;
-          })();
-        }
-      } else {
-        curConceptListOfStringsInOrder = newConceptListOfStrings;
-      }
+      adaptQueryRepresentation(curConceptAsListInOrderOfNavigation, newConceptList);
       return update();
     };
     setupData = function(data) {
@@ -128,11 +129,6 @@
       }
       return filterdNodes;
     };
-    whatIsInXButNotInY = function(x, y) {
-      return x.filter(function(z) {
-        return y.indexOf(z) < 0;
-      });
-    };
     createLabels = function(x, y) {
       return whatIsInXButNotInY(x, y);
     };
@@ -158,7 +154,6 @@
       node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", navigateNewConcept);
       return node.exit().remove();
     };
-    setCurConcept = function(newConcept) {};
     forceTick = function(e) {
       var dampenAlpha;
       dampenAlpha = e.alpha * 0.1;
@@ -221,28 +216,41 @@
     return network;
   };
 
-  $(function() {
-    var adaptHeight, myNetwork, searchSubmit;
-    adaptHeight = $(window).height() - $('#search-bar').outerHeight(true);
-    $('.col-md-6, #viz').height(adaptHeight);
-    myNetwork = Network();
-    d3.json("lattice.json", function(json) {
-      return myNetwork("#vis", json);
-    });
-    searchSubmit = function() {
-      var newConcept;
-      newConcept = $('#searchText').val().split(' ');
-      return myNetwork.applyNewConceptToNetwork(newConcept);
-    };
-    $('#searchButton').click(function() {
-      return searchSubmit();
-    });
-    return $('#searchText').keypress(function(e) {
-      if (e.which === 13) {
-        searchSubmit();
-        return false;
+  adaptQueryRepresentation = function(curConceptListInOrder, newConceptList) {
+    var w, whatIsNew;
+    if (curConceptListInOrder) {
+      if (newConceptList.length >= curConceptListInOrder.length) {
+        whatIsNew = whatIsInXButNotInY(newConceptList, curConceptListInOrder);
+        if (whatIsNew.length === newConceptList.length) {
+          return curConceptListInOrder = newConceptList;
+        } else {
+          return curConceptListInOrder = curConceptListInOrder.concat(whatIsNew);
+        }
+      } else {
+        curConceptListInOrder = (function() {
+          var j, len, results;
+          results = [];
+          for (j = 0, len = curConceptListInOrder.length; j < len; j++) {
+            w = curConceptListInOrder[j];
+            if (indexOf.call(newConceptList, w) >= 0) {
+              results.push(w);
+            }
+          }
+          return results;
+        })();
+        if (curConceptListInOrder.length === 0) {
+          return curConceptListInOrder = newConceptList;
+        }
       }
+    } else {
+      return curConceptListInOrder = newConceptList;
+    }
+  };
+
+  whatIsInXButNotInY = function(x, y) {
+    return x.filter(function(z) {
+      return y.indexOf(z) < 0;
     });
-  });
+  };
 
 }).call(this);

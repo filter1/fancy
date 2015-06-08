@@ -29,7 +29,7 @@ Network = () ->
 
 	# initialize without any concept
 	curConcept = null
-	curConceptListOfStringsInOrder = null
+	curConceptAsListInOrderOfNavigation = null
 
 	force = d3.layout.force()
 
@@ -64,7 +64,7 @@ Network = () ->
 		# if already something set - no start
 		if curConcept
 			printResultList()
-			$('#search-bar input').val curConceptListOfStringsInOrder.join ' '
+			$('#search-bar input').val curConceptAsListInOrderOfNavigation.join ' '
 
 	printResultList = ->
 		details = $('#details').text ''
@@ -87,28 +87,14 @@ Network = () ->
 		reg = curConcept.intensionNames. join '|'
 		details.html details.html().replace(new RegExp(reg, "gi"),'<strong>$&</strong>')
 
-	network.applyNewConceptToNetwork = (newConceptListOfStrings) ->
+	network.applyNewConceptToNetwork = (newConceptList) ->
 		force.stop()
 
-		conceptProccessed = (c.toLowerCase() for c in newConceptListOfStrings).sort()
+		# tranfrom to internal representation
+		conceptProccessed = (c.toLowerCase() for c in newConceptList).sort()
 		curConcept = conceptToId.get conceptProccessed
 
-		# is the selection empty?
-		if curConceptListOfStringsInOrder
-			# is the new string longer?
-			if newConceptListOfStrings.length > curConceptListOfStringsInOrder.length
-				whatIsNew = whatIsInXButNotInY(newConceptListOfStrings, curConceptListOfStringsInOrder)
-
-				# when there is a completly new search term
-				if whatIsNew.length == newConceptListOfStrings.length
-					curConceptListOfStringsInOrder = newConceptListOfStrings
-				else
-					curConceptListOfStringsInOrder = curConceptListOfStringsInOrder.concat whatIsNew
-			else
-				curConceptListOfStringsInOrder = (w for w in curConceptListOfStringsInOrder when w in newConceptListOfStrings)
-
-		else
-			curConceptListOfStringsInOrder = newConceptListOfStrings
+		adaptQueryRepresentation(curConceptAsListInOrderOfNavigation, newConceptList)
 
 		update()
 		
@@ -135,14 +121,8 @@ Network = () ->
 			
 		filterdNodes
 
-	whatIsInXButNotInY = (x, y) ->
-		x.filter (z) -> y.indexOf(z) < 0
-
 	createLabels = (x, y) ->
-		# if x.length > y.length
-			whatIsInXButNotInY(x, y)
-		# else
-		# 	whatIsInXButNotInY(y, x)
+		whatIsInXButNotInY(x, y)
 
 	formatLabelText = (node) ->
 		text = createLabels(node.intensionNames, curConcept.intensionNames)
@@ -189,11 +169,6 @@ Network = () ->
 			.on("click", navigateNewConcept)
 
 		node.exit().remove()
-
-
-	# transform to internal filter representation
-	setCurConcept = (newConcept) ->
-
 
 	forceTick = (e) ->
 		dampenAlpha = e.alpha * 0.1
@@ -273,22 +248,3 @@ Network = () ->
 		network.applyNewConceptToNetwork(d.intensionNames)
 
 	network
-
-$ ->
-	adaptHeight = $(window).height() - $('#search-bar').outerHeight(true)
-	$('.col-md-6, #viz').height adaptHeight
-
-	myNetwork = Network()
-	
-	d3.json "lattice.json", (json) -> myNetwork("#vis", json)
-
-	searchSubmit = ->
-		newConcept = $('#searchText').val().split(' ')
-		myNetwork.applyNewConceptToNetwork(newConcept)
-
-	$('#searchButton').click -> searchSubmit()
-
-	$('#searchText').keypress (e) ->
-		if e.which == 13
-			searchSubmit()
-			return false	
