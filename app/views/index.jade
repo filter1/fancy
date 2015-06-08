@@ -11,11 +11,26 @@ block content
 		.col-md-6.col-md-push-6
 			#vis
 		.col-md-6.col-md-pull-6
-			#history
-				span#numResults
-				a(class="btn btn-default btn-sm", data-toggle="collapse", href="#collapseExample", aria-expanded="false", aria-controls="collapseExample") History
-				.collapse#collapseExample
-					.panel.panel-default
+			#accordion.panel-group(role="tablist", aria-multiselectable="true")
+				.panel.panel-default#history
+					.panel-heading#headingOne(role="tab")
+						h4.panel-title
+							a.collapsed(data-toggle="collapse", data-parent="#accordion", href="#collapseOne", aria-expanded="true", aria-controls="collapseOne") Search History
+					#collapseOne.panel-collapse.collapse(role="tabpanel", aria-labelledby="headingOne")
+						.list-group
+
+				.panel.panel-default
+					.panel-heading#headingTwo(role="tab")
+						h4.panel-title
+							a(data-toggle="collapse", data-parent="#accordion", href="#collapseTwo", aria-expanded="false", aria-controls="collapseTwo") Results
+					#collapseTwo.panel-collapse.collapse.in(role="tabpanel", aria-labelledby="headingTwo")
 						.panel-body
-							.list-group
-			#details
+							#details		
+
+			//- 	span#numResults
+			//- 	a(class="btn btn-default btn-sm", data-toggle="collapse", href="#collapseExample", aria-expanded="false", aria-controls="collapseExample") History
+			//- 	.collapse#collapseExample
+			//- 		.panel.panel-default
+			//- 			.panel-body
+			//- 				.list-group
+			//- #details

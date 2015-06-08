@@ -1,5 +1,5 @@
 $ ->
-	adaptHeight = $(window).height() - $('#search-bar').outerHeight(true)
+	adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('.nav').outerHeight(true)
 	$('.col-md-6, #viz').height adaptHeight
 
 	myNetwork = Network()

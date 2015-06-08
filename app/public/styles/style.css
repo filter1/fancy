@@ -1,17 +1,21 @@
-body {
-  padding: 0 1em; }
-
 .node {
   text-anchor: middle; }
 
 .count {
   font-size: 0.75em; }
 
+.row + .row {
+  margin: 1em 0; }
+
+.col-md-6 {
+  padding: 0; }
+
 #vis {
   height: 100%; }
 
-#details {
-  overflow: auto; }
+#accordion {
+  overflow: auto;
+  height: 100%; }
 
 .alert {
   text-align: center; }
