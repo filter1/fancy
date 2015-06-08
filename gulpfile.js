@@ -56,4 +56,4 @@ gulp.task('nodemon', function (cb) {
   });
 });
 
-gulp.task('default', ['watch', 'browser-sync']);
+gulp.task('default', ['coffee-public', 'coffee-app', 'watch', 'browser-sync']);

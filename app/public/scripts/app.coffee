@@ -6,6 +6,8 @@ $ ->
 	
 	d3.json "lattice.json", (json) -> myNetwork("#vis", json)
 
+	fillHistory()
+
 	searchSubmit = ->
 		newConcept = $('#searchText').val().split(' ')
 		myNetwork.applyNewConceptToNetwork(newConcept)
@@ -16,3 +18,10 @@ $ ->
 		if e.which == 13
 			searchSubmit()
 			return false	
+
+	$('#history').on('click', '.list-group-item', ->
+		text = $(this).find('.historyQuery').text().split(' ')
+		console.log text
+		myNetwork.applyNewConceptToNetwork(text)
+		)
+

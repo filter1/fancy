@@ -20,6 +20,7 @@ adaptQueryRepresentation = (curConceptListInOrder, newConceptList) ->
 
 	else
 		curConceptListInOrder = newConceptList
+	curConceptListInOrder 
 
 # filter some stuff out
 whatIsInXButNotInY = (x, y) ->

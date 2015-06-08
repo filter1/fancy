@@ -1,5 +1,5 @@
 (function() {
-  var Network, adaptQueryRepresentation, whatIsInXButNotInY,
+  var Network, adaptQueryRepresentation, addToHistoryList, fillHistory, getDataFromLocalStorage, key, printResultList, saveQueryToHistory, whatIsInXButNotInY,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   $(function() {
@@ -10,6 +10,7 @@
     d3.json("lattice.json", function(json) {
       return myNetwork("#vis", json);
     });
+    fillHistory();
     searchSubmit = function() {
       var newConcept;
       newConcept = $('#searchText').val().split(' ');
@@ -18,16 +19,22 @@
     $('#searchButton').click(function() {
       return searchSubmit();
     });
-    return $('#searchText').keypress(function(e) {
+    $('#searchText').keypress(function(e) {
       if (e.which === 13) {
         searchSubmit();
         return false;
       }
     });
+    return $('#history').on('click', '.list-group-item', function() {
+      var text;
+      text = $(this).find('.historyQuery').text().split(' ');
+      console.log(text);
+      return myNetwork.applyNewConceptToNetwork(text);
+    });
   });
 
   Network = function() {
-    var allNodes, collide, collisionPadding, conceptToId, createLabels, curConcept, curConceptAsListInOrderOfNavigation, curLinksData, curNodesData, documents, filterNodes, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, navigateNewConcept, network, node, nodesG, printResultList, radiusScale, setupData, showDetails, update, updateNodes, width, zoomed;
+    var allNodes, collide, collisionPadding, conceptToId, createLabels, curConcept, curConceptAsListInOrderOfNavigation, curLinksData, curNodesData, documents, filterNodes, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, navigateNewConcept, network, node, nodesG, radiusScale, setupData, showDetails, update, updateNodes, width, zoomed;
     width = parseInt(d3.select("#vis").style("width"));
     height = parseInt(d3.select("#vis").style("height"));
     jitter = 0.5;
@@ -65,23 +72,9 @@
       updateNodes();
       force.start();
       if (curConcept) {
-        printResultList();
+        printResultList(curConcept, documents);
         return $('#search-bar input').val(curConceptAsListInOrderOfNavigation.join(' '));
       }
-    };
-    printResultList = function() {
-      var details, doc, docId, i, j, len, ref, reg;
-      details = $('#details').text('').append(curConcept.extensionNames.length + " results<br>");
-      i = 1;
-      ref = curConcept.extensionNames;
-      for (j = 0, len = ref.length; j < len; j++) {
-        docId = ref[j];
-        doc = documents.get(docId);
-        details.append("<h4>" + i + ". " + doc.title + "</h4>").append("<p>" + doc.content + "</p>").append("<p>" + doc.notes + "</p>").append("<p>" + doc.references + "</p>").append("<p>" + doc.materia + "</p>").append("<p>" + doc.language + "</p>").append("<p>" + doc.nes + ", " + doc.nes_location + ", " + doc.nes_mis + ", " + doc.nes_organization + ", " + doc.nes_person + "</p>");
-        i += 1;
-      }
-      reg = curConcept.intensionNames.join('|');
-      return details.html(details.html().replace(new RegExp(reg, "gi"), '<strong>$&</strong>'));
     };
     network.applyNewConceptToNetwork = function(newConceptList) {
       var c, conceptProccessed;
@@ -96,7 +89,8 @@
         return results;
       })()).sort();
       curConcept = conceptToId.get(conceptProccessed);
-      adaptQueryRepresentation(curConceptAsListInOrderOfNavigation, newConceptList);
+      curConceptAsListInOrderOfNavigation = adaptQueryRepresentation(curConceptAsListInOrderOfNavigation, newConceptList);
+      saveQueryToHistory(curConceptAsListInOrderOfNavigation);
       return update();
     };
     setupData = function(data) {
@@ -222,9 +216,9 @@
       if (newConceptList.length >= curConceptListInOrder.length) {
         whatIsNew = whatIsInXButNotInY(newConceptList, curConceptListInOrder);
         if (whatIsNew.length === newConceptList.length) {
-          return curConceptListInOrder = newConceptList;
+          curConceptListInOrder = newConceptList;
         } else {
-          return curConceptListInOrder = curConceptListInOrder.concat(whatIsNew);
+          curConceptListInOrder = curConceptListInOrder.concat(whatIsNew);
         }
       } else {
         curConceptListInOrder = (function() {
@@ -239,18 +233,84 @@
           return results;
         })();
         if (curConceptListInOrder.length === 0) {
-          return curConceptListInOrder = newConceptList;
+          curConceptListInOrder = newConceptList;
         }
       }
     } else {
-      return curConceptListInOrder = newConceptList;
+      curConceptListInOrder = newConceptList;
     }
+    return curConceptListInOrder;
   };
 
   whatIsInXButNotInY = function(x, y) {
     return x.filter(function(z) {
       return y.indexOf(z) < 0;
     });
+  };
+
+  printResultList = function(curConcept, documents) {
+    var details, doc, docId, i, j, len, ref, reg;
+    details = $('#details').text('').append(curConcept.extensionNames.length + " results<br>");
+    i = 1;
+    ref = curConcept.extensionNames;
+    for (j = 0, len = ref.length; j < len; j++) {
+      docId = ref[j];
+      doc = documents.get(docId);
+      details.append("<h4>" + i + ". " + doc.title + "</h4>").append("<p>" + doc.content + "</p>").append("<p>" + doc.notes + "</p>").append("<p>" + doc.references + "</p>").append("<p>" + doc.materia + "</p>").append("<p>" + doc.language + "</p>").append("<p>" + doc.nes + ", " + doc.nes_location + ", " + doc.nes_mis + ", " + doc.nes_organization + ", " + doc.nes_person + "</p>");
+      i += 1;
+    }
+    reg = curConcept.intensionNames.join('|');
+    return details.html(details.html().replace(new RegExp(reg, "gi"), '<strong>$&</strong>'));
+  };
+
+  key = "history";
+
+  getDataFromLocalStorage = function() {
+    var dataRaw;
+    if (Modernizr.localstorage) {
+      dataRaw = localStorage.getItem(key);
+      if (dataRaw) {
+        return JSON.parse(dataRaw);
+      } else {
+        return null;
+      }
+    }
+  };
+
+  saveQueryToHistory = function(curConceptList) {
+    var data, dataAsString, queryAndDate;
+    data = getDataFromLocalStorage();
+    if (!data) {
+      data = [];
+    }
+    queryAndDate = {
+      'date': +new Date(),
+      'query': curConceptList
+    };
+    data.push(queryAndDate);
+    dataAsString = JSON.stringify(data);
+    localStorage.setItem(key, dataAsString);
+    return addToHistoryList(queryAndDate);
+  };
+
+  fillHistory = function() {
+    var data, j, len, results, row;
+    data = getDataFromLocalStorage();
+    if (data) {
+      results = [];
+      for (j = 0, len = data.length; j < len; j++) {
+        row = data[j];
+        results.push(addToHistoryList(row));
+      }
+      return results;
+    }
+  };
+
+  addToHistoryList = function(row) {
+    var date, query;
+    date = new Date(row['date']).toDateString();
+    query = row['query'].join(' ');
+    return $('#history .list-group').prepend("<a href='#' class='list-group-item'> <span class='historyQuery'>" + query + "</span></a>");
   };
 
 }).call(this);
