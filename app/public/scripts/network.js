@@ -1,8 +1,9 @@
 (function() {
-  var Network;
+  var Network,
+    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   Network = function() {
-    var allNodes, collide, collisionPadding, conceptToId, createLabels, curConcept, curConceptSearchOrder, curLinksData, curNodesData, documents, filterNodes, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, navigateNewConcept, network, node, nodesG, printResultList, radiusScale, setCurConcept, setupData, showDetails, update, updateNodes, whatIsInXButNotInY, width, zoomed;
+    var allNodes, collide, collisionPadding, conceptToId, createLabels, curConcept, curConceptListOfStringsInOrder, curLinksData, curNodesData, documents, filterNodes, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, navigateNewConcept, network, node, nodesG, printResultList, radiusScale, setCurConcept, setupData, showDetails, update, updateNodes, whatIsInXButNotInY, width, zoomed;
     width = parseInt(d3.select("#vis").style("width"));
     height = parseInt(d3.select("#vis").style("height"));
     jitter = 0.5;
@@ -22,7 +23,7 @@
     nodesG = null;
     node = null;
     curConcept = null;
-    curConceptSearchOrder = null;
+    curConceptListOfStringsInOrder = null;
     force = d3.layout.force();
     network = function(selection, data) {
       var vis, zoom;
@@ -41,8 +42,7 @@
       force.start();
       if (curConcept) {
         printResultList();
-        $('#search-bar input').val(curConceptSearchOrder);
-        return $('#headline').val(curConceptSearchOrder);
+        return $('#search-bar input').val(curConceptListOfStringsInOrder.join(' '));
       }
     };
     printResultList = function() {
@@ -59,9 +59,43 @@
       reg = curConcept.intensionNames.join('|');
       return details.html(details.html().replace(new RegExp(reg, "gi"), '<strong>$&</strong>'));
     };
-    network.applyNewConceptToNetwork = function(newConcept) {
+    network.applyNewConceptToNetwork = function(newConceptListOfStrings) {
+      var c, conceptProccessed, w, whatIsNew;
       force.stop();
-      setCurConcept(newConcept);
+      conceptProccessed = ((function() {
+        var j, len, results;
+        results = [];
+        for (j = 0, len = newConceptListOfStrings.length; j < len; j++) {
+          c = newConceptListOfStrings[j];
+          results.push(c.toLowerCase());
+        }
+        return results;
+      })()).sort();
+      curConcept = conceptToId.get(conceptProccessed);
+      if (curConceptListOfStringsInOrder) {
+        if (newConceptListOfStrings.length > curConceptListOfStringsInOrder.length) {
+          whatIsNew = whatIsInXButNotInY(newConceptListOfStrings, curConceptListOfStringsInOrder);
+          if (whatIsNew.length === newConceptListOfStrings.length) {
+            curConceptListOfStringsInOrder = newConceptListOfStrings;
+          } else {
+            curConceptListOfStringsInOrder = curConceptListOfStringsInOrder.concat(whatIsNew);
+          }
+        } else {
+          curConceptListOfStringsInOrder = (function() {
+            var j, len, results;
+            results = [];
+            for (j = 0, len = curConceptListOfStringsInOrder.length; j < len; j++) {
+              w = curConceptListOfStringsInOrder[j];
+              if (indexOf.call(newConceptListOfStrings, w) >= 0) {
+                results.push(w);
+              }
+            }
+            return results;
+          })();
+        }
+      } else {
+        curConceptListOfStringsInOrder = newConceptListOfStrings;
+      }
       return update();
     };
     setupData = function(data) {
@@ -124,20 +158,7 @@
       node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", navigateNewConcept);
       return node.exit().remove();
     };
-    setCurConcept = function(newConcept) {
-      var c, conceptProccessed;
-      conceptProccessed = ((function() {
-        var j, len, results;
-        results = [];
-        for (j = 0, len = newConcept.length; j < len; j++) {
-          c = newConcept[j];
-          results.push(c.toLowerCase());
-        }
-        return results;
-      })()).sort();
-      curConcept = conceptToId.get(conceptProccessed);
-      return curConceptSearchOrder = newConcept.join(' ');
-    };
+    setCurConcept = function(newConcept) {};
     forceTick = function(e) {
       var dampenAlpha;
       dampenAlpha = e.alpha * 0.1;

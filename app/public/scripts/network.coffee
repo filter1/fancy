@@ -29,7 +29,7 @@ Network = () ->
 
 	# initialize without any concept
 	curConcept = null
-	curConceptSearchOrder = null
+	curConceptListOfStringsInOrder = null
 
 	force = d3.layout.force()
 
@@ -64,8 +64,7 @@ Network = () ->
 		# if already something set - no start
 		if curConcept
 			printResultList()
-			$('#search-bar input').val curConceptSearchOrder
-			$('#headline').val curConceptSearchOrder
+			$('#search-bar input').val curConceptListOfStringsInOrder.join ' '
 
 	printResultList = ->
 		details = $('#details').text ''
@@ -88,9 +87,29 @@ Network = () ->
 		reg = curConcept.intensionNames. join '|'
 		details.html details.html().replace(new RegExp(reg, "gi"),'<strong>$&</strong>')
 
-	network.applyNewConceptToNetwork = (newConcept) ->
+	network.applyNewConceptToNetwork = (newConceptListOfStrings) ->
 		force.stop()
-		setCurConcept(newConcept)
+
+		conceptProccessed = (c.toLowerCase() for c in newConceptListOfStrings).sort()
+		curConcept = conceptToId.get conceptProccessed
+
+		# is the selection empty?
+		if curConceptListOfStringsInOrder
+			# is the new string longer?
+			if newConceptListOfStrings.length > curConceptListOfStringsInOrder.length
+				whatIsNew = whatIsInXButNotInY(newConceptListOfStrings, curConceptListOfStringsInOrder)
+
+				# when there is a completly new search term
+				if whatIsNew.length == newConceptListOfStrings.length
+					curConceptListOfStringsInOrder = newConceptListOfStrings
+				else
+					curConceptListOfStringsInOrder = curConceptListOfStringsInOrder.concat whatIsNew
+			else
+				curConceptListOfStringsInOrder = (w for w in curConceptListOfStringsInOrder when w in newConceptListOfStrings)
+
+		else
+			curConceptListOfStringsInOrder = newConceptListOfStrings
+
 		update()
 		
 	setupData = (data) ->
@@ -174,9 +193,7 @@ Network = () ->
 
 	# transform to internal filter representation
 	setCurConcept = (newConcept) ->
-		conceptProccessed = (c.toLowerCase() for c in newConcept).sort()
-		curConcept = conceptToId.get conceptProccessed
-		curConceptSearchOrder = newConcept.join ' '
+
 
 	forceTick = (e) ->
 		dampenAlpha = e.alpha * 0.1
@@ -255,18 +272,15 @@ Network = () ->
 	navigateNewConcept = (d, i) ->
 		network.applyNewConceptToNetwork(d.intensionNames)
 
-
 	network
 
 $ ->
-
 	adaptHeight = $(window).height() - $('#search-bar').outerHeight(true)
 	$('.col-md-6, #viz').height adaptHeight
 
 	myNetwork = Network()
 	
-	d3.json "lattice.json", (json) ->
-		myNetwork("#vis", json)
+	d3.json "lattice.json", (json) -> myNetwork("#vis", json)
 
 	searchSubmit = ->
 		newConcept = $('#searchText').val().split(' ')
@@ -278,7 +292,3 @@ $ ->
 		if e.which == 13
 			searchSubmit()
 			return false	
-
-
-
-

@@ -3,15 +3,13 @@ extends ./layout.jade
 block content
 	.row
 			#search-bar.input-group
-				input(id="searchText", type="text", class="form-control input-lg" placeholder="Search")
+				input(id="searchText", type="text", class="form-control input-lg" placeholder="Search", autofocus="autofocus")
 				span.input-group-btn
 						button(id="searchButton", class="btn btn-lg btn-default", type="button")
 								i.glyphicon.glyphicon-search
 
 	.row
 		.col-md-6.col-md-push-6
-			.row
-				#headline
 			#vis
 		.col-md-6.col-md-pull-6
 			#details
