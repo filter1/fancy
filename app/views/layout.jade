@@ -12,8 +12,6 @@ html(lang="en")
 	body
 		.container-fluid
 			.row
-				if alert
-					.alert.alert-success #{alert}
 				ul.nav.nav-pills.pull-right(role="tablist")
 					li
 						if userName
@@ -25,7 +23,21 @@ html(lang="en")
 					if userName
 						li
 							a(href='/logout') Logout
+			.row
+				if alert
+					if alert.type == "fail"
+						.alert.alert-danger.alert-dismissible(role="alert")
+							button(type="button", class="close", data-dismiss="alert", aria-label="Close")
+								span(aria-hidden="true")
+									&times;
+							p #{alert.message}
 
+					else
+						.alert.alert-success.alert-dismissible(role="alert")
+							button(type="button", class="close", data-dismiss="alert", aria-label="Close")
+								span(aria-hidden="true")
+									&times;
+							p #{alert.message}
 
 			block content
 

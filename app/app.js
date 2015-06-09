@@ -25,33 +25,6 @@
 
   app.set('view engine', 'jade');
 
-  app.get('/', function(req, res) {
-    return res.render('index', {
-      userName: req.cookies.user
-    });
-  });
-
-  app.get('/login', function(req, res) {
-    return res.render('login');
-  });
-
-  app.post('/login', function(req, res) {
-    var name;
-    name = req.body.login;
-    res.cookie('user', name);
-    return res.render('login', {
-      alert: 'Successfully logged in!',
-      userName: name
-    });
-  });
-
-  app.get('/logout', function(req, res) {
-    res.cookie('user', 'XXX', {
-      maxAge: -1
-    });
-    return res.redirect('/');
-  });
-
   sequelize = new Sequelize(config.get("dbName"), config.get("dbUser"), config.get("dbPassword"), {
     host: 'localhost',
     dialect: 'mysql'
@@ -59,15 +32,16 @@
 
   sequelize.authenticate().done(function(err) {
     if (err) {
-      return console.log('Unable to connect to the database:', err);
+      return console.log("connection failed:" + err);
     } else {
-      return console.log('Connection has been established successfully.');
+      return console.log('connection success');
     }
   });
 
   User = sequelize.define('user', {
     name: {
-      type: Sequelize.STRING
+      type: Sequelize.STRING,
+      unique: true
     }
   });
 
@@ -101,8 +75,54 @@
 
   User.hasMany(Query);
 
-  sequelize.sync().then(function() {
+  sequelize.sync({
+    force: true
+  }).then(function() {
     return console.log('successfully created all tables');
+  });
+
+  app.get('/', function(req, res) {
+    return res.render('index', {
+      userName: req.cookies.user
+    });
+  });
+
+  app.get('/login', function(req, res) {
+    return res.render('login');
+  });
+
+  app.post('/login', function(req, res) {
+    var name;
+    name = req.body.login;
+    res.cookie('user', name);
+    return User.create({
+      name: name
+    }).then(function(user) {
+      var alert;
+      alert = {
+        message: 'Successfully logged in!'
+      };
+      return res.render('login', {
+        alert: alert,
+        userName: name
+      });
+    })["catch"](function(user) {
+      var alert;
+      alert = {
+        message: "Failed to loing as " + name,
+        type: 'fail'
+      };
+      return res.render('login', {
+        alert: alert
+      });
+    });
+  });
+
+  app.get('/logout', function(req, res) {
+    res.cookie('user', 'XXX', {
+      maxAge: -1
+    });
+    return res.redirect('/');
   });
 
   port = config.get("port");

@@ -2,13 +2,13 @@ extends ./layout.jade
 
 block content
 	.row
-		if userName
-			a.btn.btn-default.text-center(href='/') Back
-		else
-			form(action="/login", method="POST")
-				.form-group
-					label(for="login")
-					input.form-control(type="text", id="login", placeholder="Enter Name", name="login")
-				button.btn.btn-default(type="submit") Submit
-
-
+		.col-md-4.col-md-offset-4
+			if userName
+				.text-center
+					a(href='/') Start
+			else
+				form(action="/login", method="POST")
+					.form-group
+						label(for="login")
+						input.form-control(type="text", id="login", placeholder="Enter Name", name="login")
+					button.btn.btn-default.pull-right(type="submit") Submit
