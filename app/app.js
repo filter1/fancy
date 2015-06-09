@@ -1,11 +1,15 @@
 (function() {
-  var app, bodyParser, cookieParser, express;
+  var Like, LinkClicks, Query, Sequelize, User, app, bodyParser, config, cookieParser, express, port, sequelize;
 
   express = require('express');
 
   cookieParser = require('cookie-parser');
 
   bodyParser = require('body-parser');
+
+  Sequelize = require('sequelize');
+
+  config = require('config');
 
   app = express();
 
@@ -48,8 +52,63 @@
     return res.redirect('/');
   });
 
-  app.listen(3000, function() {
-    return console.log('Listening on port 3000');
+  sequelize = new Sequelize(config.get("dbName"), config.get("dbUser"), config.get("dbPassword"), {
+    host: 'localhost',
+    dialect: 'mysql'
+  });
+
+  sequelize.authenticate().done(function(err) {
+    if (err) {
+      return console.log('Unable to connect to the database:', err);
+    } else {
+      return console.log('Connection has been established successfully.');
+    }
+  });
+
+  User = sequelize.define('user', {
+    name: {
+      type: Sequelize.STRING
+    }
+  });
+
+  Like = sequelize.define('like', {
+    document: {
+      type: Sequelize.STRING
+    }
+  });
+
+  Query = sequelize.define('query', {
+    term: {
+      type: Sequelize.STRING
+    },
+    date: {
+      type: Sequelize.DATE
+    },
+    interaction: {
+      type: Sequelize.STRING
+    }
+  });
+
+  LinkClicks = sequelize.define('linkclicks', {
+    document: {
+      type: Sequelize.STRING
+    }
+  });
+
+  User.hasMany(Like);
+
+  User.hasMany(LinkClicks);
+
+  User.hasMany(Query);
+
+  sequelize.sync().then(function() {
+    return console.log('successfully created all tables');
+  });
+
+  port = config.get("port");
+
+  app.listen(port, function() {
+    return console.log("Listening on port " + port);
   });
 
 }).call(this);
