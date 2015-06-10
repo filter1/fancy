@@ -13,6 +13,8 @@ app = express()
 app.use( express.static __dirname + '/public' )
 app.use( cookieParser 'secret' )
 app.use( bodyParser.urlencoded { extended: false } )
+app.use( bodyParser.json() )
+
 
 app.set 'views', __dirname + '/views'
 app.set 'view engine', 'jade'
@@ -24,9 +26,8 @@ app.set 'view engine', 'jade'
 
 sequelize = new Sequelize( config.get("dbName"), config.get("dbUser"), config.get("dbPassword") , {
 		host: 'localhost',
-		dialect: 'mysql',
-		'pool': false
-	})
+		dialect: 'mysql'
+		})
 
 sequelize.authenticate().done( (err) ->
 	if err
@@ -87,7 +88,7 @@ app.post '/login', (req, res) ->
 	userName = req.body.userName
 	res.cookie 'userName', userName
 
-	User.create {name: userName}
+	User.create { name: userName }
 		.then (user) ->
 			alert = { message: "Newly registered as #{userName}!" }
 			res.render 'login', { alert: alert, userName: userName }
@@ -96,7 +97,7 @@ app.post '/login', (req, res) ->
 			res.render 'login', { alert: alert, userName: userName }
 
 app.get '/logout', (req, res) ->
-	res.cookie 'userName', 'XXX', {maxAge: -1}
+	res.cookie 'userName', 'XXX', { maxAge: -1 }
 	res.redirect '/'
 
 # restrict data access
@@ -107,22 +108,28 @@ isAuthenticatedForData = (req, res, next) ->
 		User.findOne { where: {name: userName}}
 			.then (user) ->
 				res.locals.user = user
+				console.log "verification success #{userName}"
 				return next()
-	console.log 'verification failed'
-	res.end()
+
+	# console.log "verification failed #{userName}"
+	# return res.redirect('/')
 
 app.get('/history', isAuthenticatedForData, (req, res) ->
+	console.log 'new request to get history data'
 	user = res.locals.user
-	user.getHistoryItems().then( (rows) ->
-			console.log rows
+	user.getHistoryitems().then( (items) ->
+			console.log items
+			res.json( items )
 		)
 	)
 
 app.post('/history', isAuthenticatedForData, (req, res) ->
 		console.log 'new request to store history'
 		user = res.locals.user
-		user.createHistoryitem( {interaction: req.body.interaction, terms: req.body.terms} )
-				.then( -> console.log "successfully inserted" )
+		history = JSON.parse req.body.history
+		for item in history
+			user.createHistoryitem( {interaction: item.interaction, terms: item.terms} )
+					.then( -> console.log "successfully inserted new history" )
 		res.end()
 	)
 

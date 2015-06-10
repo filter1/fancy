@@ -1,6 +1,10 @@
 (function() {
-  var KEY, Network, adaptQueryRepresentation, fillHistory, getHistoryFromLocalStorage, printResultList, printToHistoryList, saveQueryToHistory, sendToServer, whatIsInXButNotInY,
+  var KEY_HISTORY, KEY_UNSYNCED, Network, adaptQueryRepresentation, getHistoryFromServer, getHistoryFromSessionStorage, printHistory, printResultList, printToHistoryList, saveIt, saveQueryToHistory, sendToServer, sendUnsyncedToServer, setHistoryToSessionStorage, userLoggedIn, whatIsInXButNotInY,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+
+  userLoggedIn = function() {
+    return $('#userName').length > 0;
+  };
 
   $(function() {
     var adaptHeight, myNetwork, searchSubmit;
@@ -24,12 +28,23 @@
         return false;
       }
     });
-    return $('#history').on('click', '.list-group-item', function() {
+    $('#history').on('click', '.list-group-item', function() {
       var text;
       text = $(this).find('.historyQuery').text().split(' ');
       console.log(text);
       return myNetwork.applyNewConceptToNetwork(text, 'history');
     });
+    if (Modernizr.sessionstorage) {
+      if (userLoggedIn()) {
+        if (sessionStorage.getItem(KEY_UNSYNCED)) {
+          return sendUnsyncedToServer();
+        } else {
+          return getHistoryFromServer();
+        }
+      } else {
+        return printHistory();
+      }
+    }
   });
 
   Network = function() {
@@ -264,12 +279,15 @@
     return details.html(details.html().replace(new RegExp(reg, "gi"), '<strong>$&</strong>'));
   };
 
-  KEY = "history";
+  KEY_HISTORY = "history";
 
-  getHistoryFromLocalStorage = function() {
+  KEY_UNSYNCED = "unsynced";
+
+  getHistoryFromSessionStorage = function(key) {
     var dataRaw;
-    if (Modernizr.localstorage) {
-      dataRaw = localStorage.getItem(KEY);
+    if (Modernizr.sessionstorage) {
+      dataRaw = sessionStorage.getItem(key);
+      console.log(dataRaw);
       if (dataRaw) {
         return JSON.parse(dataRaw);
       } else {
@@ -278,46 +296,109 @@
     }
   };
 
-  saveQueryToHistory = function(curConceptList, interaction) {
-    var history, historyAsString, historyItem;
-    history = getHistoryFromLocalStorage();
+  setHistoryToSessionStorage = function(dataRaw, key) {
+    var historyAsString;
+    if (Modernizr.sessionstorage) {
+      historyAsString = JSON.stringify(dataRaw);
+      return sessionStorage.setItem(key, historyAsString);
+    }
+  };
+
+  saveIt = function(historyItem, key) {
+    var history;
+    history = getHistoryFromSessionStorage(key);
     if (!history) {
       history = [];
     }
-    historyItem = {
-      'terms': curConceptList,
-      'interaction': interaction
-    };
     history.push(historyItem);
-    historyAsString = JSON.stringify(history);
-    localStorage.setItem(KEY, historyAsString);
-    printToHistoryList(historyItem);
-    return sendToServer(historyItem);
+    return setHistoryToSessionStorage(history, key);
   };
 
-  fillHistory = function() {
-    var history, historyItem, j, len, results;
-    history = getHistoryFromLocalStorage();
+  saveQueryToHistory = function(curConceptList, interaction) {
+    var curConceptString, historyItem;
+    curConceptString = curConceptList.join(' ');
+    historyItem = {
+      'terms': curConceptString,
+      'interaction': interaction
+    };
+    printToHistoryList(historyItem);
+    if (userLoggedIn()) {
+      console.log('User is logged in. Save to Server.');
+      saveIt(historyItem, KEY_HISTORY);
+      return sendToServer(historyItem);
+    } else {
+      console.log('Not logged in.');
+      return saveIt(historyItem, KEY_UNSYNCED);
+    }
+  };
+
+  printHistory = function() {
+    var history, historyItem, j, key, len, results;
+    if (userLoggedIn()) {
+      key = KEY_HISTORY;
+    } else {
+      key = KEY_UNSYNCED;
+    }
+    console.log("print it with " + key);
+    history = getHistoryFromSessionStorage(key);
+    console.log(history);
     if (history) {
       results = [];
       for (j = 0, len = history.length; j < len; j++) {
         historyItem = history[j];
-        results.push(printToHistoryList(row));
+        results.push(printToHistoryList(historyItem));
       }
       return results;
     }
   };
 
   printToHistoryList = function(historyItem) {
-    var date, terms;
-    date = new Date(historyItem['date']).toDateString();
-    terms = historyItem['terms'].join(' ');
+    var terms;
+    terms = historyItem['terms'];
     return $('#history .list-group').prepend("<a href='#' class='list-group-item'> <span class='historyQuery'>" + terms + "</span></a>");
   };
 
   sendToServer = function(historyItem) {
-    return $.post('/history', historyItem, function() {
-      return console.log('und?');
+    return $.post('/history', {
+      history: JSON.stringify([historyItem])
+    }, function() {
+      return console.log('sent item to server');
+    });
+  };
+
+  sendUnsyncedToServer = function() {
+    var history;
+    history = getHistoryFromSessionStorage(KEY_UNSYNCED);
+    if (history) {
+      return $.post('/history', {
+        history: JSON.stringify(history)
+      }, function() {
+        console.log('synced history to server');
+        sessionStorage.removeItem(KEY_UNSYNCED);
+        return getHistoryFromServer();
+      });
+    }
+  };
+
+  getHistoryFromServer = function() {
+    return $.getJSON('/history', function(items) {
+      var item, result;
+      console.log('got items');
+      console.log(items);
+      result = (function() {
+        var j, len, results;
+        results = [];
+        for (j = 0, len = items.length; j < len; j++) {
+          item = items[j];
+          results.push({
+            terms: item.terms,
+            interaction: item.interaction
+          });
+        }
+        return results;
+      })();
+      setHistoryToSessionStorage(result, KEY_HISTORY);
+      return printHistory();
     });
   };
 

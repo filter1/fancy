@@ -1,36 +1,79 @@
-KEY = "history"
+KEY_HISTORY = "history"
+KEY_UNSYNCED = "unsynced"
 
-getHistoryFromLocalStorage = ->
-	if Modernizr.localstorage 
-		dataRaw = localStorage.getItem KEY
+getHistoryFromSessionStorage = (key) ->
+	if Modernizr.sessionstorage 
+		dataRaw = sessionStorage.getItem key
+
+		console.log dataRaw
+
 		if dataRaw
 			return JSON.parse dataRaw
 		else
 			return null
 
-saveQueryToHistory = (curConceptList, interaction) ->
-	history = getHistoryFromLocalStorage()
+setHistoryToSessionStorage = (dataRaw, key) ->
+	if Modernizr.sessionstorage
+		historyAsString = JSON.stringify dataRaw
+		sessionStorage.setItem key, historyAsString	
+
+saveIt = (historyItem, key) ->
+	history = getHistoryFromSessionStorage key
 	history = [] if not history
-
-	historyItem = {'terms': curConceptList, 'interaction': interaction }
 	history.push historyItem
-	historyAsString = JSON.stringify history
-	localStorage.setItem KEY, historyAsString
+	setHistoryToSessionStorage history, key
 
+saveQueryToHistory = (curConceptList, interaction) ->
+	curConceptString = curConceptList.join ' '
+	historyItem = {'terms': curConceptString, 'interaction': interaction }
 	printToHistoryList historyItem
-	sendToServer historyItem
 
-fillHistory = ->
-	history = getHistoryFromLocalStorage()
+	if userLoggedIn()
+		console.log 'User is logged in. Save to Server.'
+		saveIt(historyItem, KEY_HISTORY)
+		sendToServer historyItem
+	else
+		console.log 'Not logged in.'
+		saveIt(historyItem, KEY_UNSYNCED)
+
+printHistory = ->
+
+	if userLoggedIn()
+		key = KEY_HISTORY
+	else
+		key = KEY_UNSYNCED
+
+	console.log "print it with #{key}"
+
+	history = getHistoryFromSessionStorage key
+
+	console.log history
+
 	if history
 		for historyItem in history
-			printToHistoryList row
+			printToHistoryList historyItem
 
 printToHistoryList = (historyItem) ->
-	date = new Date historyItem['date']
-		.toDateString()
-	terms = historyItem['terms'].join ' '
+	terms = historyItem['terms']
 	$('#history .list-group').prepend "<a href='#' class='list-group-item'> <span class='historyQuery'>#{terms}</span></a>"
 
 sendToServer = (historyItem) ->
-	$.post '/history', historyItem, -> console.log 'und?'
+	$.post '/history', { history: JSON.stringify ([ historyItem ]) }, -> console.log 'sent item to server'
+
+# Fix this to send this data as JSON.
+sendUnsyncedToServer = ->
+	history = getHistoryFromSessionStorage KEY_UNSYNCED
+	if history
+		$.post '/history', { history: JSON.stringify history }, ->
+			console.log 'synced history to server'
+			sessionStorage.removeItem KEY_UNSYNCED
+			getHistoryFromServer()
+
+getHistoryFromServer = ->
+	$.getJSON '/history', (items) -> 
+		console.log 'got items'
+		console.log items
+		result = ( { terms: item.terms, interaction: item.interaction } for item in items)
+
+		setHistoryToSessionStorage result, KEY_HISTORY
+		printHistory()

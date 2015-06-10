@@ -15,7 +15,7 @@ html(lang="en")
 				ul.nav.nav-pills.pull-right(role="tablist")
 					li
 						if userName
-							a(href='/user') #{userName}
+							a#userName(href='/user') #{userName}
 						else
 							a(href='/login') Login
 					li
@@ -28,15 +28,13 @@ html(lang="en")
 					if alert.type == "fail"
 						.alert.alert-danger.alert-dismissible(role="alert")
 							button(type="button", class="close", data-dismiss="alert", aria-label="Close")
-								span(aria-hidden="true")
-									&times;
+								span(aria-hidden="true") &times;
 							p #{alert.message}
 
 					else
 						.alert.alert-success.alert-dismissible(role="alert")
 							button(type="button", class="close", data-dismiss="alert", aria-label="Close")
-								span(aria-hidden="true")
-									&times;
+								span(aria-hidden="true") &times;
 							p #{alert.message}
 
 			block content

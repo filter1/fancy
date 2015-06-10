@@ -21,14 +21,15 @@
     extended: false
   }));
 
+  app.use(bodyParser.json());
+
   app.set('views', __dirname + '/views');
 
   app.set('view engine', 'jade');
 
   sequelize = new Sequelize(config.get("dbName"), config.get("dbUser"), config.get("dbPassword"), {
     host: 'localhost',
-    dialect: 'mysql',
-    'pool': false
+    dialect: 'mysql'
   });
 
   sequelize.authenticate().done(function(err) {
@@ -138,37 +139,42 @@
     var userName;
     userName = req.cookies.userName;
     if (userName) {
-      User.findOne({
+      return User.findOne({
         where: {
           name: userName
         }
       }).then(function(user) {
         res.locals.user = user;
+        console.log("verification success " + userName);
         return next();
       });
     }
-    console.log('verification failed');
-    return res.end();
   };
 
   app.get('/history', isAuthenticatedForData, function(req, res) {
     var user;
+    console.log('new request to get history data');
     user = res.locals.user;
-    return user.getHistoryItems().then(function(rows) {
-      return console.log(rows);
+    return user.getHistoryitems().then(function(items) {
+      console.log(items);
+      return res.json(items);
     });
   });
 
   app.post('/history', isAuthenticatedForData, function(req, res) {
-    var user;
+    var history, i, item, len, user;
     console.log('new request to store history');
     user = res.locals.user;
-    user.createHistoryitem({
-      interaction: req.body.interaction,
-      terms: req.body.terms
-    }).then(function() {
-      return console.log("successfully inserted");
-    });
+    history = JSON.parse(req.body.history);
+    for (i = 0, len = history.length; i < len; i++) {
+      item = history[i];
+      user.createHistoryitem({
+        interaction: item.interaction,
+        terms: item.terms
+      }).then(function() {
+        return console.log("successfully inserted new history");
+      });
+    }
     return res.end();
   });
 

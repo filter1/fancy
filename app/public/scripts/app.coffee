@@ -1,3 +1,6 @@
+userLoggedIn = ->
+	return $('#userName').length > 0
+
 $ ->
 	adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('.nav').outerHeight(true)
 	$('.col-md-6, #viz').height adaptHeight
@@ -30,3 +33,13 @@ $ ->
 			myNetwork.applyNewConceptToNetwork(text, 'history')
 		)
 
+	if Modernizr.sessionstorage
+		if userLoggedIn()
+			if sessionStorage.getItem KEY_UNSYNCED
+				# calls other functions here
+				sendUnsyncedToServer()
+			else
+				# calls other functions here
+				getHistoryFromServer()
+		else
+			printHistory()
