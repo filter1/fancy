@@ -1,5 +1,5 @@
 (function() {
-  var Like, LinkClicks, Query, Sequelize, User, app, bodyParser, config, cookieParser, express, port, sequelize;
+  var Historyitem, Like, Linkclick, Sequelize, User, app, bodyParser, config, cookieParser, express, isAuthenticatedForData, port, sequelize;
 
   express = require('express');
 
@@ -27,7 +27,8 @@
 
   sequelize = new Sequelize(config.get("dbName"), config.get("dbUser"), config.get("dbPassword"), {
     host: 'localhost',
-    dialect: 'mysql'
+    dialect: 'mysql',
+    'pool': false
   });
 
   sequelize.authenticate().done(function(err) {
@@ -51,19 +52,16 @@
     }
   });
 
-  Query = sequelize.define('query', {
-    term: {
+  Historyitem = sequelize.define('historyitem', {
+    terms: {
       type: Sequelize.STRING
-    },
-    date: {
-      type: Sequelize.DATE
     },
     interaction: {
       type: Sequelize.STRING
     }
   });
 
-  LinkClicks = sequelize.define('linkclicks', {
+  Linkclick = sequelize.define('linkclick', {
     document: {
       type: Sequelize.STRING
     }
@@ -71,19 +69,30 @@
 
   User.hasMany(Like);
 
-  User.hasMany(LinkClicks);
+  User.hasMany(Linkclick);
 
-  User.hasMany(Query);
+  User.hasMany(Historyitem);
+
+  Like.belongsTo(User);
+
+  Linkclick.belongsTo(User);
+
+  Historyitem.belongsTo(User);
 
   sequelize.sync({
     force: true
   }).then(function() {
+    User.create({
+      name: "Johannes"
+    });
     return console.log('successfully created all tables');
   });
 
+  User.findOne().then((function(u) {}));
+
   app.get('/', function(req, res) {
     return res.render('index', {
-      userName: req.cookies.user
+      userName: req.cookies.userName
     });
   });
 
@@ -92,37 +101,75 @@
   });
 
   app.post('/login', function(req, res) {
-    var name;
-    name = req.body.login;
-    res.cookie('user', name);
+    var userName;
+    userName = req.body.userName;
+    res.cookie('userName', userName);
     return User.create({
-      name: name
+      name: userName
     }).then(function(user) {
       var alert;
       alert = {
-        message: 'Successfully logged in!'
+        message: "Newly registered as " + userName + "!"
       };
       return res.render('login', {
         alert: alert,
-        userName: name
+        userName: userName
       });
     })["catch"](function(user) {
       var alert;
       alert = {
-        message: "Failed to loing as " + name,
-        type: 'fail'
+        message: "Welcome Back, " + userName + "!"
       };
       return res.render('login', {
-        alert: alert
+        alert: alert,
+        userName: userName
       });
     });
   });
 
   app.get('/logout', function(req, res) {
-    res.cookie('user', 'XXX', {
+    res.cookie('userName', 'XXX', {
       maxAge: -1
     });
     return res.redirect('/');
+  });
+
+  isAuthenticatedForData = function(req, res, next) {
+    var userName;
+    userName = req.cookies.userName;
+    if (userName) {
+      User.findOne({
+        where: {
+          name: userName
+        }
+      }).then(function(user) {
+        res.locals.user = user;
+        return next();
+      });
+    }
+    console.log('verification failed');
+    return res.end();
+  };
+
+  app.get('/history', isAuthenticatedForData, function(req, res) {
+    var user;
+    user = res.locals.user;
+    return user.getHistoryItems().then(function(rows) {
+      return console.log(rows);
+    });
+  });
+
+  app.post('/history', isAuthenticatedForData, function(req, res) {
+    var user;
+    console.log('new request to store history');
+    user = res.locals.user;
+    user.createHistoryitem({
+      interaction: req.body.interaction,
+      terms: req.body.terms
+    }).then(function() {
+      return console.log("successfully inserted");
+    });
+    return res.end();
   });
 
   port = config.get("port");

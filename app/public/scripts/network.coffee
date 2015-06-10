@@ -66,7 +66,7 @@ Network = () ->
 			printResultList(curConcept, documents)
 			$('#search-bar input').val curConceptAsListInOrderOfNavigation.join ' '
 
-	network.applyNewConceptToNetwork = (newConceptList) ->
+	network.applyNewConceptToNetwork = (newConceptList, interaction) ->
 		force.stop()
 
 		# tranfrom to internal representation
@@ -75,7 +75,9 @@ Network = () ->
 
 		curConceptAsListInOrderOfNavigation = adaptQueryRepresentation(curConceptAsListInOrderOfNavigation, newConceptList)
 
-		saveQueryToHistory(curConceptAsListInOrderOfNavigation)
+		console.log 'LOg'
+		saveQueryToHistory(curConceptAsListInOrderOfNavigation, interaction)
+		console.log interaction
 
 		update()
 		
@@ -226,6 +228,6 @@ Network = () ->
 			# .style("font-size", "1em")
 	
 	navigateNewConcept = (d, i) ->
-		network.applyNewConceptToNetwork(d.intensionNames)
+		network.applyNewConceptToNetwork(d.intensionNames, 'click')
 
 	network

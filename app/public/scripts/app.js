@@ -1,5 +1,5 @@
 (function() {
-  var Network, adaptQueryRepresentation, addToHistoryList, fillHistory, getDataFromLocalStorage, key, printResultList, saveQueryToHistory, whatIsInXButNotInY,
+  var KEY, Network, adaptQueryRepresentation, fillHistory, getHistoryFromLocalStorage, printResultList, printToHistoryList, saveQueryToHistory, sendToServer, whatIsInXButNotInY,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   $(function() {
@@ -10,11 +10,10 @@
     d3.json("lattice.json", function(json) {
       return myNetwork("#vis", json);
     });
-    fillHistory();
     searchSubmit = function() {
       var newConcept;
       newConcept = $('#searchText').val().split(' ');
-      return myNetwork.applyNewConceptToNetwork(newConcept);
+      return myNetwork.applyNewConceptToNetwork(newConcept, 'search');
     };
     $('#searchButton').click(function() {
       return searchSubmit();
@@ -29,7 +28,7 @@
       var text;
       text = $(this).find('.historyQuery').text().split(' ');
       console.log(text);
-      return myNetwork.applyNewConceptToNetwork(text);
+      return myNetwork.applyNewConceptToNetwork(text, 'history');
     });
   });
 
@@ -76,7 +75,7 @@
         return $('#search-bar input').val(curConceptAsListInOrderOfNavigation.join(' '));
       }
     };
-    network.applyNewConceptToNetwork = function(newConceptList) {
+    network.applyNewConceptToNetwork = function(newConceptList, interaction) {
       var c, conceptProccessed;
       force.stop();
       conceptProccessed = ((function() {
@@ -90,7 +89,9 @@
       })()).sort();
       curConcept = conceptToId.get(conceptProccessed);
       curConceptAsListInOrderOfNavigation = adaptQueryRepresentation(curConceptAsListInOrderOfNavigation, newConceptList);
-      saveQueryToHistory(curConceptAsListInOrderOfNavigation);
+      console.log('LOg');
+      saveQueryToHistory(curConceptAsListInOrderOfNavigation, interaction);
+      console.log(interaction);
       return update();
     };
     setupData = function(data) {
@@ -205,7 +206,7 @@
       return node.select('text').style("font-weight", "normal");
     };
     navigateNewConcept = function(d, i) {
-      return network.applyNewConceptToNetwork(d.intensionNames);
+      return network.applyNewConceptToNetwork(d.intensionNames, 'click');
     };
     return network;
   };
@@ -263,12 +264,12 @@
     return details.html(details.html().replace(new RegExp(reg, "gi"), '<strong>$&</strong>'));
   };
 
-  key = "history";
+  KEY = "history";
 
-  getDataFromLocalStorage = function() {
+  getHistoryFromLocalStorage = function() {
     var dataRaw;
     if (Modernizr.localstorage) {
-      dataRaw = localStorage.getItem(key);
+      dataRaw = localStorage.getItem(KEY);
       if (dataRaw) {
         return JSON.parse(dataRaw);
       } else {
@@ -277,40 +278,47 @@
     }
   };
 
-  saveQueryToHistory = function(curConceptList) {
-    var data, dataAsString, queryAndDate;
-    data = getDataFromLocalStorage();
-    if (!data) {
-      data = [];
+  saveQueryToHistory = function(curConceptList, interaction) {
+    var history, historyAsString, historyItem;
+    history = getHistoryFromLocalStorage();
+    if (!history) {
+      history = [];
     }
-    queryAndDate = {
-      'date': +new Date(),
-      'query': curConceptList
+    historyItem = {
+      'terms': curConceptList,
+      'interaction': interaction
     };
-    data.push(queryAndDate);
-    dataAsString = JSON.stringify(data);
-    localStorage.setItem(key, dataAsString);
-    return addToHistoryList(queryAndDate);
+    history.push(historyItem);
+    historyAsString = JSON.stringify(history);
+    localStorage.setItem(KEY, historyAsString);
+    printToHistoryList(historyItem);
+    return sendToServer(historyItem);
   };
 
   fillHistory = function() {
-    var data, j, len, results, row;
-    data = getDataFromLocalStorage();
-    if (data) {
+    var history, historyItem, j, len, results;
+    history = getHistoryFromLocalStorage();
+    if (history) {
       results = [];
-      for (j = 0, len = data.length; j < len; j++) {
-        row = data[j];
-        results.push(addToHistoryList(row));
+      for (j = 0, len = history.length; j < len; j++) {
+        historyItem = history[j];
+        results.push(printToHistoryList(row));
       }
       return results;
     }
   };
 
-  addToHistoryList = function(row) {
-    var date, query;
-    date = new Date(row['date']).toDateString();
-    query = row['query'].join(' ');
-    return $('#history .list-group').prepend("<a href='#' class='list-group-item'> <span class='historyQuery'>" + query + "</span></a>");
+  printToHistoryList = function(historyItem) {
+    var date, terms;
+    date = new Date(historyItem['date']).toDateString();
+    terms = historyItem['terms'].join(' ');
+    return $('#history .list-group').prepend("<a href='#' class='list-group-item'> <span class='historyQuery'>" + terms + "</span></a>");
+  };
+
+  sendToServer = function(historyItem) {
+    return $.post('/history', historyItem, function() {
+      return console.log('und?');
+    });
   };
 
 }).call(this);

@@ -1,32 +1,36 @@
-key = "history"
-getDataFromLocalStorage = ->
+KEY = "history"
+
+getHistoryFromLocalStorage = ->
 	if Modernizr.localstorage 
-		dataRaw = localStorage.getItem key
+		dataRaw = localStorage.getItem KEY
 		if dataRaw
 			return JSON.parse dataRaw
 		else
 			return null
 
-saveQueryToHistory = (curConceptList) ->
-	data = getDataFromLocalStorage()
-	data = [] if not data
+saveQueryToHistory = (curConceptList, interaction) ->
+	history = getHistoryFromLocalStorage()
+	history = [] if not history
 
-	queryAndDate = { 'date': +new Date(), 'query': curConceptList }
-	data.push queryAndDate
-	dataAsString = JSON.stringify data
-	localStorage.setItem key, dataAsString
+	historyItem = {'terms': curConceptList, 'interaction': interaction }
+	history.push historyItem
+	historyAsString = JSON.stringify history
+	localStorage.setItem KEY, historyAsString
 
-	addToHistoryList queryAndDate
+	printToHistoryList historyItem
+	sendToServer historyItem
 
 fillHistory = ->
-	data = getDataFromLocalStorage()
-	if data
-		for row in data
-			addToHistoryList row
+	history = getHistoryFromLocalStorage()
+	if history
+		for historyItem in history
+			printToHistoryList row
 
-addToHistoryList = (row) ->
-	date = new Date row['date']
+printToHistoryList = (historyItem) ->
+	date = new Date historyItem['date']
 		.toDateString()
-	query = row['query'].join ' '
-	# $('#history .list-group').prepend "<a href='#' class='list-group-item'><span class='historyDate'>#{date}</span> <span class='historyQuery'>#{query}</span></a>"
-	$('#history .list-group').prepend "<a href='#' class='list-group-item'> <span class='historyQuery'>#{query}</span></a>"
+	terms = historyItem['terms'].join ' '
+	$('#history .list-group').prepend "<a href='#' class='list-group-item'> <span class='historyQuery'>#{terms}</span></a>"
+
+sendToServer = (historyItem) ->
+	$.post '/history', historyItem, -> console.log 'und?'

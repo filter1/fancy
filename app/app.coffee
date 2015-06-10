@@ -4,7 +4,6 @@ bodyParser = require 'body-parser'
 Sequelize = require 'sequelize'
 config = require 'config'
 
-
 ##########
 # Setup  #
 ##########
@@ -24,66 +23,108 @@ app.set 'view engine', 'jade'
 ##########
 
 sequelize = new Sequelize( config.get("dbName"), config.get("dbUser"), config.get("dbPassword") , {
-  host: 'localhost',
-  dialect: 'mysql',
-})
+		host: 'localhost',
+		dialect: 'mysql',
+		'pool': false
+	})
 
 sequelize.authenticate().done( (err) ->
-  if err
-    console.log "connection failed:#{err}"
-  else
-    console.log 'connection success'
+	if err
+		console.log "connection failed:#{err}"
+	else
+		console.log 'connection success'
 )
 
 User = sequelize.define 'user', {
-	  name: { type: Sequelize.STRING, unique: true }
+		name: { type: Sequelize.STRING, unique: true }
 	}
 
 Like = sequelize.define 'like', {
-	  document: { type: Sequelize.STRING }
+		document: { type: Sequelize.STRING }
 	}
 
 # save date because users' history will be logged without been logged in.
-Query = sequelize.define 'query', {
-	  term: { type: Sequelize.STRING },
-	  date: { type: Sequelize.DATE },
-	  interaction: { type: Sequelize.STRING }
+Historyitem = sequelize.define 'historyitem', {
+		terms: { type: Sequelize.STRING },
+		interaction: { type: Sequelize.STRING }
 	}
 
-LinkClicks = sequelize.define 'linkclicks', {
-	  document: { type: Sequelize.STRING }
+Linkclick = sequelize.define 'linkclick', {
+		document: { type: Sequelize.STRING }
 	}
 
 User.hasMany Like
-User.hasMany LinkClicks
-User.hasMany Query
+User.hasMany Linkclick
+User.hasMany Historyitem
 
-sequelize.sync({force: true}).then( -> console.log 'successfully created all tables' )
+Like.belongsTo User
+Linkclick.belongsTo User
+Historyitem.belongsTo User
+
+sequelize.sync({force: true}).then( ->
+	User.create({name: "Johannes"})
+	console.log 'successfully created all tables'
+	)
+
+User.findOne()
+	.then ( (u) ->
+		# console.log u
+		# console.log 'XXXX'
+		# console.log u.getLikes()
+		)
+
 
 
 ##########
 # Routes #
 ##########
 
-app.get '/', (req, res) -> res.render 'index', {userName: req.cookies.user}
+
+app.get '/', (req, res) -> res.render 'index', {userName: req.cookies.userName}
 
 app.get '/login', (req, res) -> res.render 'login'
 app.post '/login', (req, res) ->
-	name = req.body.login
-	res.cookie 'user', name
+	userName = req.body.userName
+	res.cookie 'userName', userName
 
-	User.create {name: name}
+	User.create {name: userName}
 		.then (user) ->
-			alert = { message: 'Successfully logged in!' }
-			res.render 'login', { alert: alert, userName: name }
+			alert = { message: "Newly registered as #{userName}!" }
+			res.render 'login', { alert: alert, userName: userName }
 		.catch (user) ->
-			alert = { message: "Failed to loing as #{name}", type: 'fail' }
-			res.render 'login', { alert: alert }
+			alert = { message: "Welcome Back, #{userName}!"}
+			res.render 'login', { alert: alert, userName: userName }
 
 app.get '/logout', (req, res) ->
-	res.cookie 'user', 'XXX', {maxAge: -1}
+	res.cookie 'userName', 'XXX', {maxAge: -1}
 	res.redirect '/'
 
+# restrict data access
+isAuthenticatedForData = (req, res, next) ->
+	userName = req.cookies.userName
+
+	if userName
+		User.findOne { where: {name: userName}}
+			.then (user) ->
+				res.locals.user = user
+				return next()
+	console.log 'verification failed'
+	res.end()
+
+app.get('/history', isAuthenticatedForData, (req, res) ->
+	user = res.locals.user
+	user.getHistoryItems().then( (rows) ->
+			console.log rows
+		)
+	)
+
+app.post('/history', isAuthenticatedForData, (req, res) ->
+		console.log 'new request to store history'
+		user = res.locals.user
+		user.createHistoryitem( {interaction: req.body.interaction, terms: req.body.terms} )
+				.then( -> console.log "successfully inserted" )
+		res.end()
+	)
 
 ##########
 # Listen #

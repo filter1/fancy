@@ -6,11 +6,16 @@ $ ->
 	
 	d3.json "lattice.json", (json) -> myNetwork("#vis", json)
 
-	fillHistory()
+
+	# $.get('/history', (data) ->
+	# 	# only on session init
+	# 	# save to store
+	# 	# fillHistory()
+	# 	)
 
 	searchSubmit = ->
 		newConcept = $('#searchText').val().split(' ')
-		myNetwork.applyNewConceptToNetwork(newConcept)
+		myNetwork.applyNewConceptToNetwork(newConcept, 'search')
 
 	$('#searchButton').click -> searchSubmit()
 
@@ -20,8 +25,8 @@ $ ->
 			return false	
 
 	$('#history').on('click', '.list-group-item', ->
-		text = $(this).find('.historyQuery').text().split(' ')
-		console.log text
-		myNetwork.applyNewConceptToNetwork(text)
+			text = $(this).find('.historyQuery').text().split(' ')
+			console.log text
+			myNetwork.applyNewConceptToNetwork(text, 'history')
 		)
 
