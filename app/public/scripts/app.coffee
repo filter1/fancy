@@ -2,19 +2,13 @@ userLoggedIn = ->
 	return $('#userName').length > 0
 
 $ ->
-	adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('.nav').outerHeight(true)
+	# why - 10? no clue.
+	adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('header').outerHeight(true) - 10
 	$('.col-md-6, #viz').height adaptHeight
 
 	myNetwork = Network()
 	
 	d3.json "lattice.json", (json) -> myNetwork("#vis", json)
-
-
-	# $.get('/history', (data) ->
-	# 	# only on session init
-	# 	# save to store
-	# 	# fillHistory()
-	# 	)
 
 	searchSubmit = ->
 		newConcept = $('#searchText').val().split(' ')

@@ -8,7 +8,7 @@
 
   $(function() {
     var adaptHeight, myNetwork, searchSubmit;
-    adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('.nav').outerHeight(true);
+    adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('header').outerHeight(true) - 10;
     $('.col-md-6, #viz').height(adaptHeight);
     myNetwork = Network();
     d3.json("lattice.json", function(json) {
@@ -265,18 +265,19 @@
   };
 
   printResultList = function(curConcept, documents) {
-    var details, doc, docId, i, j, len, ref, reg;
-    details = $('#details').text('').append(curConcept.extensionNames.length + " results<br>");
+    var details, doc, docId, i, j, len, ref, results, url;
+    details = $('#details .list-group').text('');
     i = 1;
     ref = curConcept.extensionNames;
+    results = [];
     for (j = 0, len = ref.length; j < len; j++) {
       docId = ref[j];
       doc = documents.get(docId);
-      details.append("<h4>" + i + ". " + doc.title + "</h4>").append("<p>" + doc.content + "</p>").append("<p>" + doc.notes + "</p>").append("<p>" + doc.references + "</p>").append("<p>" + doc.materia + "</p>").append("<p>" + doc.language + "</p>").append("<p>" + doc.nes + ", " + doc.nes_location + ", " + doc.nes_mis + ", " + doc.nes_organization + ", " + doc.nes_person + "</p>");
-      i += 1;
+      url = "http://www.mcu.es/ccbae/es/consulta/resultados_busqueda.cmd?tipo_busqueda=mapas_planos_dibujos&posicion=1&forma=ficha&id=811036";
+      details.append("<a href='" + url + "' target='_blank' class='list-group-item'><h4 class='list-group-item-heading'>" + doc.title + "</h4><p class='list-group-item-text'>" + doc.content + "</p></a>");
+      results.push(i += 1);
     }
-    reg = curConcept.intensionNames.join('|');
-    return details.html(details.html().replace(new RegExp(reg, "gi"), '<strong>$&</strong>'));
+    return results;
   };
 
   KEY_HISTORY = "history";

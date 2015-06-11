@@ -1,11 +1,15 @@
+body {
+  padding: 0 1em; }
+
 .node {
   text-anchor: middle; }
 
 .count {
   font-size: 0.75em; }
 
-.row + .row {
-  margin: 1em 0; }
+#search-bar {
+  margin-top: 1em;
+  margin-bottom: 1em; }
 
 .col-md-6 {
   padding: 0; }
@@ -19,3 +23,6 @@
 
 .alert {
   text-align: center; }
+
+#accordion {
+  margin: 0; }

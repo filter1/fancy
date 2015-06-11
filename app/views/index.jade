@@ -1,8 +1,8 @@
 extends ./layout.jade
 
 block content
-	.row
-			#search-bar.input-group
+	.row#search-bar
+			.input-group
 				input(id="searchText", type="text", class="form-control input-lg" placeholder="Search", autofocus="autofocus")
 				span.input-group-btn
 						button(id="searchButton", class="btn btn-lg btn-default", type="button")
@@ -19,14 +19,15 @@ block content
 					#collapseOne.panel-collapse.collapse(role="tabpanel", aria-labelledby="headingOne")
 						.list-group
 
-				.panel.panel-default
+				.panel.panel-default#details
 					.panel-heading#headingTwo(role="tab")
 						h4.panel-title
 							a(data-toggle="collapse", data-parent="#accordion", href="#collapseTwo", aria-expanded="false", aria-controls="collapseTwo") Results
 					#collapseTwo.panel-collapse.collapse.in(role="tabpanel", aria-labelledby="headingTwo")
-						.panel-body
-							#details
-								
+						.list-group
+							.text-center <br> No results yet. Enter a query. <br><br>
+
+
 			//- 	span#numResults
 			//- 	a(class="btn btn-default btn-sm", data-toggle="collapse", href="#collapseExample", aria-expanded="false", aria-controls="collapseExample") History
 			//- 	.collapse#collapseExample
