@@ -8,31 +8,33 @@ $ ->
 
 	myNetwork = Network()
 	
-	d3.json "lattice.json", (json) -> myNetwork("#vis", json)
+	d3.json "lattice.json", (json) ->
+		myNetwork("#vis", json)
 
-	searchSubmit = ->
-		newConcept = $('#searchText').val().split(' ')
-		myNetwork.applyNewConceptToNetwork(newConcept, 'search')
+		# do this stuff after the json was loaded
+		searchSubmit = ->
+			newConcept = $('#searchText').val().split(' ')
+			myNetwork.applyNewConceptToNetwork(newConcept, 'search')
 
-	$('#searchButton').click -> searchSubmit()
+		$('#searchButton').click -> searchSubmit()
 
-	$('#searchText').keypress (e) ->
-		if e.which == 13
-			searchSubmit()
-			return false	
+		$('#searchText').keypress (e) ->
+			if e.which == 13
+				searchSubmit()
+				return false	
 
-	$('#history').on('click', '.list-group-item', ->
-			text = $(this).find('.historyQuery').text().split(' ')
-			myNetwork.applyNewConceptToNetwork(text, 'history')
-		)
+		$('#history').on('click', '.list-group-item', ->
+				text = $(this).find('.historyQuery').text().split(' ')
+				myNetwork.applyNewConceptToNetwork(text, 'history')
+			)
 
-	if Modernizr.sessionstorage
-		if userLoggedIn()
-			if sessionStorage.getItem KEY_UNSYNCED
-				# calls other functions here
-				sendUnsyncedToServer()
+		if Modernizr.sessionstorage
+			if userLoggedIn()
+				if sessionStorage.getItem KEY_UNSYNCED
+					# calls other functions here
+					sendUnsyncedToServer()
+				else
+					# calls other functions here
+					getHistoryFromServer()
 			else
-				# calls other functions here
-				getHistoryFromServer()
-		else
-			printHistory()
+				printHistory()

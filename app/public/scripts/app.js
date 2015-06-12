@@ -7,43 +7,44 @@
   };
 
   $(function() {
-    var adaptHeight, myNetwork, searchSubmit;
+    var adaptHeight, myNetwork;
     adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('header').outerHeight(true) - 10;
     $('.col-md-6, #viz').height(adaptHeight);
     myNetwork = Network();
-    d3.json("lattice.json", function(json) {
-      return myNetwork("#vis", json);
-    });
-    searchSubmit = function() {
-      var newConcept;
-      newConcept = $('#searchText').val().split(' ');
-      return myNetwork.applyNewConceptToNetwork(newConcept, 'search');
-    };
-    $('#searchButton').click(function() {
-      return searchSubmit();
-    });
-    $('#searchText').keypress(function(e) {
-      if (e.which === 13) {
-        searchSubmit();
-        return false;
-      }
-    });
-    $('#history').on('click', '.list-group-item', function() {
-      var text;
-      text = $(this).find('.historyQuery').text().split(' ');
-      return myNetwork.applyNewConceptToNetwork(text, 'history');
-    });
-    if (Modernizr.sessionstorage) {
-      if (userLoggedIn()) {
-        if (sessionStorage.getItem(KEY_UNSYNCED)) {
-          return sendUnsyncedToServer();
-        } else {
-          return getHistoryFromServer();
+    return d3.json("lattice.json", function(json) {
+      var searchSubmit;
+      myNetwork("#vis", json);
+      searchSubmit = function() {
+        var newConcept;
+        newConcept = $('#searchText').val().split(' ');
+        return myNetwork.applyNewConceptToNetwork(newConcept, 'search');
+      };
+      $('#searchButton').click(function() {
+        return searchSubmit();
+      });
+      $('#searchText').keypress(function(e) {
+        if (e.which === 13) {
+          searchSubmit();
+          return false;
         }
-      } else {
-        return printHistory();
+      });
+      $('#history').on('click', '.list-group-item', function() {
+        var text;
+        text = $(this).find('.historyQuery').text().split(' ');
+        return myNetwork.applyNewConceptToNetwork(text, 'history');
+      });
+      if (Modernizr.sessionstorage) {
+        if (userLoggedIn()) {
+          if (sessionStorage.getItem(KEY_UNSYNCED)) {
+            return sendUnsyncedToServer();
+          } else {
+            return getHistoryFromServer();
+          }
+        } else {
+          return printHistory();
+        }
       }
-    }
+    });
   });
 
   Network = function() {
