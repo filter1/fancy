@@ -1,0 +1,8 @@
+extends ./layout.jade
+
+block content
+	.container
+		h1 My Likes
+		.list-group
+			each doc in documents
+				a.list-group-item(href=doc.get('documentURL'))= doc.get('documentTitle')

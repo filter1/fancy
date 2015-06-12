@@ -48,7 +48,11 @@
   });
 
   Like = sequelize.define('like', {
-    document: {
+    documentURL: {
+      type: Sequelize.STRING,
+      unique: true
+    },
+    documentTitle: {
       type: Sequelize.STRING
     }
   });
@@ -89,10 +93,14 @@
     return console.log('successfully created all tables');
   });
 
-  User.findOne().then((function(u) {}));
-
   app.get('/', function(req, res) {
     return res.render('index', {
+      userName: req.cookies.userName
+    });
+  });
+
+  app.get('/infos', function(req, res) {
+    return res.render('infos', {
       userName: req.cookies.userName
     });
   });
@@ -148,6 +156,9 @@
         console.log("verification success " + userName);
         return next();
       });
+    } else {
+      res.status(403);
+      return res.end();
     }
   };
 
@@ -176,6 +187,35 @@
       });
     }
     return res.end();
+  });
+
+  app.post('/likes', isAuthenticatedForData, function(req, res) {
+    var documentTitle, documentURL, user;
+    console.log('new request to store likes');
+    user = res.locals.user;
+    documentURL = req.body.documentURL;
+    documentTitle = req.body.documentTitle;
+    user.createLike({
+      documentURL: documentURL,
+      documentTitle: documentTitle
+    }).then(function() {
+      return console.log('new like saved');
+    });
+    res.end();
+    return res.end();
+  });
+
+  app.get('/likes', isAuthenticatedForData, function(req, res) {
+    var user;
+    user = res.locals.user;
+    return user.getLikes().then(function(documents) {
+      return res.render('likes', {
+        documents: documents,
+        userName: user.get('name')
+      });
+    })["catch"](function() {
+      return res.end();
+    });
   });
 
   port = config.get("port");

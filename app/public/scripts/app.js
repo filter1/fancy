@@ -31,7 +31,6 @@
     $('#history').on('click', '.list-group-item', function() {
       var text;
       text = $(this).find('.historyQuery').text().split(' ');
-      console.log(text);
       return myNetwork.applyNewConceptToNetwork(text, 'history');
     });
     if (Modernizr.sessionstorage) {
@@ -264,17 +263,31 @@
     });
   };
 
+  this.sendLikeToServer = function(url, title, element) {
+    return $.post('/likes', {
+      documentURL: url,
+      documentTitle: title
+    }).done(function() {
+      return element.style.color = "FireBrick";
+    }).fail(function(err) {
+      alert('You have to be logged in to save documents.');
+      return console.log(err);
+    });
+  };
+
   printResultList = function(curConcept, documents) {
-    var details, doc, docId, i, j, len, ref, results, url;
+    var button, details, doc, docId, i, j, len, ref, results, url;
     details = $('#details .list-group').text('');
+    $('#numResults').text(curConcept.extensionNames.length);
     i = 1;
     ref = curConcept.extensionNames;
     results = [];
     for (j = 0, len = ref.length; j < len; j++) {
       docId = ref[j];
       doc = documents.get(docId);
-      url = "http://www.mcu.es/ccbae/es/consulta/resultados_busqueda.cmd?tipo_busqueda=mapas_planos_dibujos&posicion=1&forma=ficha&id=811036";
-      details.append("<a href='" + url + "' target='_blank' class='list-group-item'><h4 class='list-group-item-heading'>" + doc.title + "</h4><p class='list-group-item-text'>" + doc.content + "</p></a>");
+      url = "http://www.mcu.es/ccbae/es/consulta/resultados_busqueda.cmd?tipo_busqueda=mapas_planos_dibujos&posicion=1&forma=ficha&id=" + docId;
+      button = "<button class='btn pull-right' onclick='sendLikeToServer(\"" + url + "\" ,\"" + doc.title + "\", this);'> <span class='glyphicon glyphicon-heart'></span></button>";
+      details.append("<li class='list-group-item'><a href='" + url + "' target='_blank'><h4 class='list-group-item-heading'>" + doc.title + "</h4></a><p class='list-group-item-text'>" + doc.content + "</p>" + button + "<div class='clearfix'/></li>");
       results.push(i += 1);
     }
     return results;
@@ -288,7 +301,6 @@
     var dataRaw;
     if (Modernizr.sessionstorage) {
       dataRaw = sessionStorage.getItem(key);
-      console.log(dataRaw);
       if (dataRaw) {
         return JSON.parse(dataRaw);
       } else {
@@ -340,9 +352,7 @@
     } else {
       key = KEY_UNSYNCED;
     }
-    console.log("print it with " + key);
     history = getHistoryFromSessionStorage(key);
-    console.log(history);
     if (history) {
       results = [];
       for (j = 0, len = history.length; j < len; j++) {

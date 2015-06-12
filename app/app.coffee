@@ -41,7 +41,8 @@ User = sequelize.define 'user', {
 	}
 
 Like = sequelize.define 'like', {
-		document: { type: Sequelize.STRING }
+		documentURL: { type: Sequelize.STRING, unique: true }
+		documentTitle: { type: Sequelize.STRING }
 	}
 
 # save date because users' history will be logged without been logged in.
@@ -63,17 +64,9 @@ Linkclick.belongsTo User
 Historyitem.belongsTo User
 
 sequelize.sync({force: true}).then( ->
-	User.create({name: "Johannes"})
-	console.log 'successfully created all tables'
+		User.create({name: "Johannes"})
+		console.log 'successfully created all tables'
 	)
-
-User.findOne()
-	.then ( (u) ->
-		# console.log u
-		# console.log 'XXXX'
-		# console.log u.getLikes()
-		)
-
 
 
 ##########
@@ -81,7 +74,9 @@ User.findOne()
 ##########
 
 
-app.get '/', (req, res) -> res.render 'index', {userName: req.cookies.userName}
+app.get '/', (req, res) -> res.render 'index', { userName: req.cookies.userName }
+
+app.get '/infos', (req, res) -> res.render 'infos', { userName: req.cookies.userName }
 
 app.get '/login', (req, res) -> res.render 'login'
 app.post '/login', (req, res) ->
@@ -110,6 +105,9 @@ isAuthenticatedForData = (req, res, next) ->
 				res.locals.user = user
 				console.log "verification success #{userName}"
 				return next()
+	else
+		res.status(403)
+		res.end()
 
 	# console.log "verification failed #{userName}"
 	# return res.redirect('/')
@@ -131,6 +129,26 @@ app.post('/history', isAuthenticatedForData, (req, res) ->
 			user.createHistoryitem( {interaction: item.interaction, terms: item.terms} )
 					.then( -> console.log "successfully inserted new history" )
 		res.end()
+	)
+
+app.post('/likes', isAuthenticatedForData, (req, res) ->
+		console.log 'new request to store likes'
+		user = res.locals.user
+		documentURL = req.body.documentURL
+		documentTitle = req.body.documentTitle
+		user.createLike( { documentURL: documentURL, documentTitle: documentTitle } )
+			.then -> console.log 'new like saved'
+			res.end()
+		res.end()
+	)
+
+app.get('/likes', isAuthenticatedForData, (req, res) ->
+		user = res.locals.user
+		user.getLikes()
+			.then (documents) ->
+				res.render 'likes', {documents: documents, userName: user.get('name')}
+			.catch ->
+				res.end()
 	)
 
 ##########

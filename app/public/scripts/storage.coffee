@@ -4,9 +4,6 @@ KEY_UNSYNCED = "unsynced"
 getHistoryFromSessionStorage = (key) ->
 	if Modernizr.sessionstorage 
 		dataRaw = sessionStorage.getItem key
-
-		console.log dataRaw
-
 		if dataRaw
 			return JSON.parse dataRaw
 		else
@@ -37,18 +34,12 @@ saveQueryToHistory = (curConceptList, interaction) ->
 		saveIt(historyItem, KEY_UNSYNCED)
 
 printHistory = ->
-
 	if userLoggedIn()
 		key = KEY_HISTORY
 	else
 		key = KEY_UNSYNCED
 
-	console.log "print it with #{key}"
-
 	history = getHistoryFromSessionStorage key
-
-	console.log history
-
 	if history
 		for historyItem in history
 			printToHistoryList historyItem

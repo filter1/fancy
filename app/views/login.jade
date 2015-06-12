@@ -1,13 +1,14 @@
 extends ./layout.jade
 
 block content
-  .row
+  .container
     .col-md-4.col-md-offset-4
       if userName
         .text-center
           a(href='/') Start
 
       else
+        h1 Login or Registration
         form(action="/login", method="POST")
           .form-group
             label(for="userName")

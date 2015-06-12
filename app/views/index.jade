@@ -22,9 +22,11 @@ block content
 				.panel.panel-default#details
 					.panel-heading#headingTwo(role="tab")
 						h4.panel-title
-							a(data-toggle="collapse", data-parent="#accordion", href="#collapseTwo", aria-expanded="false", aria-controls="collapseTwo") Results
+							a(data-toggle="collapse", data-parent="#accordion", href="#collapseTwo", aria-expanded="false", aria-controls="collapseTwo") Results 
+								span.badge#numResults
+
 					#collapseTwo.panel-collapse.collapse.in(role="tabpanel", aria-labelledby="headingTwo")
-						.list-group
+						ul.list-group
 							.text-center <br> No results yet. Enter a query. <br><br>
 
 

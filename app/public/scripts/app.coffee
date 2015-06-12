@@ -23,7 +23,6 @@ $ ->
 
 	$('#history').on('click', '.list-group-item', ->
 			text = $(this).find('.historyQuery').text().split(' ')
-			console.log text
 			myNetwork.applyNewConceptToNetwork(text, 'history')
 		)
 

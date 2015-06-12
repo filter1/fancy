@@ -15,15 +15,20 @@ html(lang="en")
 				.row
 					ul.nav.nav-pills.pull-right(role="tablist")
 						li
+							a(href='/') Home
+						li
 							if userName
 								a#userName(href='/user') #{userName}
 							else
 								a(href='/login') Login
-						li
-							a(href='#') Infos
 						if userName
 							li
+								a(href='/likes') My Likes
+							li
 								a(href='/logout') Logout
+						li
+							a(href='/infos') Infos
+
 				div
 					if alert
 						if alert.type == "fail"
