@@ -12,7 +12,7 @@ compress = require 'compression'
 
 app = express()
 
-app.use( compress() )
+app.use( compress( level: 9) )
 app.use( express.static __dirname + '/public' )
 app.use( cookieParser 'secret' )
 app.use( bodyParser.urlencoded { extended: false } )
