@@ -2,5 +2,6 @@
   "port": 3000,
   "dbName": "name",
   "dbUser": "admin",
-  "dbPassword": null
+  "dbPassword": null,
+  "recreateDb": true
 }

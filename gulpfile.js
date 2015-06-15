@@ -7,7 +7,7 @@ var gulp = require('gulp'),
  
 gulp.task('coffee-public', function() {
   gulp.src('app/public/scripts/*.coffee')
-    .pipe(concat('app.coffee'))
+    .pipe(concat('fancy.coffee'))
     .pipe(coffee())
     .pipe(gulp.dest('app/public/scripts'))
     // .pipe(connect.reload());

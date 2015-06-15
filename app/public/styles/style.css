@@ -8,8 +8,7 @@ body {
   font-size: 0.75em; }
 
 #search-bar {
-  margin-top: 1em;
-  margin-bottom: 1em; }
+  margin-top: 1em; }
 
 .col-md-6 {
   padding: 0; }
@@ -20,6 +19,10 @@ body {
 #accordion {
   overflow: auto;
   height: 100%; }
+
+.breadcrumb {
+  margin-top: 1em;
+  margin-bottom: 2em; }
 
 .alert {
   text-align: center; }

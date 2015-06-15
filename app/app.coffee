@@ -18,8 +18,6 @@ app.use( cookieParser 'secret' )
 app.use( bodyParser.urlencoded { extended: false } )
 app.use( bodyParser.json() )
 
-
-
 app.set 'views', __dirname + '/views'
 app.set 'view engine', 'jade'
 
@@ -67,10 +65,13 @@ Like.belongsTo User
 Linkclick.belongsTo User
 Historyitem.belongsTo User
 
-sequelize.sync({force: true}).then( ->
-		User.create({name: "Johannes"})
-		console.log 'successfully created all tables'
-	)
+if config.has "recreateDb"
+	sequelize.sync({force: true}).then( ->
+			User.create({name: "Johannes"})
+			console.log 'successfully created all tables'
+		)
+else
+	sequelize.sync().then( -> console.log 'synced databases' )
 
 
 ##########

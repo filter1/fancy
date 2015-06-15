@@ -10,10 +10,14 @@ printResultList = (curConcept, documents) ->
 	details = $('#details .list-group').text ''
 		# .append "#{curConcept.extensionNames.length} results<br>"
 	
-	$('#numResults').text curConcept.extensionNames.length
+	resultingDocuments = curConcept.extensionNames
+
+	$('#numResults').text resultingDocuments.length
+
+	resultingDocuments = resultingDocuments[..100]
 
 	i = 1
-	for docId in curConcept.extensionNames
+	for docId in resultingDocuments
 		doc = documents.get(docId)
 
 		# change id here
@@ -23,13 +27,6 @@ printResultList = (curConcept, documents) ->
     <span class='glyphicon glyphicon-heart'></span></button>"
 
 		details.append("<li class='list-group-item'><a href='#{url}' target='_blank'><h4 class='list-group-item-heading'>#{doc.title}</h4></a><p class='list-group-item-text'>#{doc.content}</p>#{button}<div class='clearfix'/></li>")
-		# details.append "<h4>#{i}. #{doc.title}</h4>"
-		# 	.append "<p>#{doc.content}</p>"
-		# 	.append "<p>#{doc.notes}</p>"
-		# 	.append "<p>#{doc.references}</p>"
-		# 	.append "<p>#{doc.materia}</p>"
-		# 	.append "<p>#{doc.language}</p>"
-		# 	.append "<p>#{doc.nes}, #{doc.nes_location}, #{doc.nes_mis}, #{doc.nes_organization}, #{doc.nes_person}</p>"
 		i += 1
 
 		# marking all words that occur in concept

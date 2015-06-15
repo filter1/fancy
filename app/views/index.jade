@@ -1,12 +1,20 @@
 extends ./layout.jade
 
 block content
-	.row#search-bar
+	#search-bar
+		.row
 			.input-group
 				input(id="searchText", type="text", class="form-control input-lg" placeholder="Search", autofocus="autofocus")
 				span.input-group-btn
 						button(id="searchButton", class="btn btn-lg btn-default", type="button")
 								i.glyphicon.glyphicon-search
+		.row
+			ol.breadcrumb
+				li
+					a(href='#' terms='')
+						i.glyphicon.glyphicon-home
+				li
+
 	.row
 		.col-md-6.col-md-push-6
 			#vis

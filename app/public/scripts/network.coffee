@@ -66,6 +66,17 @@ Network = () ->
 			printResultList(curConcept, documents)
 			$('#search-bar input').val curConceptAsListInOrderOfNavigation.join ' '
 
+			br = $('.breadcrumb')
+			br.text ''
+			br.append "<li><a href='#' terms=''><i class='glyphicon glyphicon-home'/></a></li>"
+
+			lastIndex = curConceptAsListInOrderOfNavigation.length - 1
+			if lastIndex
+				for term, i in curConceptAsListInOrderOfNavigation[0..lastIndex - 1]
+					terms = curConceptAsListInOrderOfNavigation[0..i].join ' '
+					br.append "<li><a href='#' terms='#{terms}'>#{term}</a></li>"
+			br.append "<li>#{curConceptAsListInOrderOfNavigation[lastIndex]}</li>"
+
 	network.applyNewConceptToNetwork = (newConceptList, interaction) ->
 		force.stop()
 
@@ -75,9 +86,9 @@ Network = () ->
 
 		curConceptAsListInOrderOfNavigation = adaptQueryRepresentation(curConceptAsListInOrderOfNavigation, newConceptList)
 
-		console.log 'LOg'
 		saveQueryToHistory(curConceptAsListInOrderOfNavigation, interaction)
-		console.log interaction
+
+
 
 		update()
 		

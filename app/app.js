@@ -88,14 +88,20 @@
 
   Historyitem.belongsTo(User);
 
-  sequelize.sync({
-    force: true
-  }).then(function() {
-    User.create({
-      name: "Johannes"
+  if (config.has("recreateDb")) {
+    sequelize.sync({
+      force: true
+    }).then(function() {
+      User.create({
+        name: "Johannes"
+      });
+      return console.log('successfully created all tables');
     });
-    return console.log('successfully created all tables');
-  });
+  } else {
+    sequelize.sync().then(function() {
+      return console.log('synced databases');
+    });
+  }
 
   app.get('/', function(req, res) {
     return res.render('index', {

@@ -21,7 +21,9 @@ saveIt = (historyItem, key) ->
 	setHistoryToSessionStorage history, key
 
 saveQueryToHistory = (curConceptList, interaction) ->
-	curConceptString = curConceptList.join ' '
+	console.log curConceptList
+
+	curConceptString = curConceptList.join ' / '
 	historyItem = {'terms': curConceptString, 'interaction': interaction }
 	printToHistoryList historyItem
 
@@ -46,7 +48,8 @@ printHistory = ->
 
 printToHistoryList = (historyItem) ->
 	terms = historyItem['terms']
-	$('#history .list-group').prepend "<a href='#' class='list-group-item'> <span class='historyQuery'>#{terms}</span></a>"
+	if terms
+		$('#history .list-group').prepend "<a href='#' class='list-group-item'> <span class='historyQuery'>#{terms}</span></a>"
 
 sendToServer = (historyItem) ->
 	$.post '/history', { history: JSON.stringify ([ historyItem ]) }, -> console.log 'sent item to server'
