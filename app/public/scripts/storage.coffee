@@ -48,6 +48,7 @@ printHistory = ->
 
 printToHistoryList = (historyItem) ->
 	terms = historyItem['terms']
+	# only print if not 'starting'
 	if terms
 		$('#history .list-group').prepend "<a href='#' class='list-group-item'> <span class='historyQuery'>#{terms}</span></a>"
 
