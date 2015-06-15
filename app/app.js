@@ -15,9 +15,7 @@
 
   app = express();
 
-  app.use(compress({
-    level: 9
-  }));
+  app.use(compress());
 
   app.use(express["static"](__dirname + '/public'));
 
