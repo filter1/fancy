@@ -3,6 +3,8 @@ cookieParser = require 'cookie-parser'
 bodyParser = require 'body-parser'
 Sequelize = require 'sequelize'
 config = require 'config'
+compress = require 'compression'
+
 
 ##########
 # Setup  #
@@ -10,10 +12,12 @@ config = require 'config'
 
 app = express()
 
+app.use( compress() )
 app.use( express.static __dirname + '/public' )
 app.use( cookieParser 'secret' )
 app.use( bodyParser.urlencoded { extended: false } )
 app.use( bodyParser.json() )
+
 
 
 app.set 'views', __dirname + '/views'

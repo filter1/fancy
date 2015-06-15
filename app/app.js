@@ -1,5 +1,5 @@
 (function() {
-  var Historyitem, Like, Linkclick, Sequelize, User, app, bodyParser, config, cookieParser, express, isAuthenticatedForData, port, sequelize;
+  var Historyitem, Like, Linkclick, Sequelize, User, app, bodyParser, compress, config, cookieParser, express, isAuthenticatedForData, port, sequelize;
 
   express = require('express');
 
@@ -11,7 +11,11 @@
 
   config = require('config');
 
+  compress = require('compression');
+
   app = express();
+
+  app.use(compress());
 
   app.use(express["static"](__dirname + '/public'));
 
