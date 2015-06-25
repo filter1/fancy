@@ -1,5 +1,5 @@
 (function() {
-  var KEY_HISTORY, KEY_UNSYNCED, Network, adaptQueryRepresentation, getHistoryFromServer, getHistoryFromSessionStorage, printHistory, printResultList, printToHistoryList, saveIt, saveQueryToHistory, sendToServer, sendUnsyncedToServer, setHistoryToSessionStorage, userLoggedIn, whatIsInXButNotInY,
+  var KEY_HISTORY, KEY_UNSYNCED, Network, adaptQueryRepresentation, getHistoryDataFromSessionStorage, getHistoryFromServer, printHistory, printResultList, printToHistoryListItem, saveNavigationActionToSessionStorage, saveQueryToHistory, sendToServer, sendUnsyncedToServer, setHistoryDataToSessionStorage, userLoggedIn, whatIsInXButNotInY,
     indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   userLoggedIn = function() {
@@ -316,7 +316,7 @@
 
   KEY_UNSYNCED = "unsynced";
 
-  getHistoryFromSessionStorage = function(key) {
+  getHistoryDataFromSessionStorage = function(key) {
     var dataRaw;
     if (Modernizr.sessionstorage) {
       dataRaw = sessionStorage.getItem(key);
@@ -328,7 +328,7 @@
     }
   };
 
-  setHistoryToSessionStorage = function(dataRaw, key) {
+  setHistoryDataToSessionStorage = function(dataRaw, key) {
     var historyAsString;
     if (Modernizr.sessionstorage) {
       historyAsString = JSON.stringify(dataRaw);
@@ -336,32 +336,29 @@
     }
   };
 
-  saveIt = function(historyItem, key) {
+  saveNavigationActionToSessionStorage = function(historyItem, key) {
     var history;
-    history = getHistoryFromSessionStorage(key);
+    history = getHistoryDataFromSessionStorage(key);
     if (!history) {
       history = [];
     }
     history.push(historyItem);
-    return setHistoryToSessionStorage(history, key);
+    return setHistoryDataToSessionStorage(history, key);
   };
 
   saveQueryToHistory = function(curConceptList, interaction) {
     var curConceptString, historyItem;
-    console.log(curConceptList);
     curConceptString = curConceptList.join(' / ');
     historyItem = {
       'terms': curConceptString,
       'interaction': interaction
     };
-    printToHistoryList(historyItem);
+    printToHistoryListItem(historyItem);
     if (userLoggedIn()) {
-      console.log('User is logged in. Save to Server.');
-      saveIt(historyItem, KEY_HISTORY);
+      saveNavigationActionToSessionStorage(historyItem, KEY_HISTORY);
       return sendToServer(historyItem);
     } else {
-      console.log('Not logged in.');
-      return saveIt(historyItem, KEY_UNSYNCED);
+      return saveNavigationActionToSessionStorage(historyItem, KEY_UNSYNCED);
     }
   };
 
@@ -372,18 +369,18 @@
     } else {
       key = KEY_UNSYNCED;
     }
-    history = getHistoryFromSessionStorage(key);
+    history = getHistoryDataFromSessionStorage(key);
     if (history) {
       results = [];
       for (j = 0, len = history.length; j < len; j++) {
         historyItem = history[j];
-        results.push(printToHistoryList(historyItem));
+        results.push(printToHistoryListItem(historyItem));
       }
       return results;
     }
   };
 
-  printToHistoryList = function(historyItem) {
+  printToHistoryListItem = function(historyItem) {
     var terms;
     terms = historyItem['terms'];
     if (terms) {
@@ -394,14 +391,12 @@
   sendToServer = function(historyItem) {
     return $.post('/history', {
       history: JSON.stringify([historyItem])
-    }, function() {
-      return console.log('sent item to server');
     });
   };
 
   sendUnsyncedToServer = function() {
     var history;
-    history = getHistoryFromSessionStorage(KEY_UNSYNCED);
+    history = getHistoryDataFromSessionStorage(KEY_UNSYNCED);
     if (history) {
       return $.post('/history', {
         history: JSON.stringify(history)
@@ -416,8 +411,6 @@
   getHistoryFromServer = function() {
     return $.getJSON('/history', function(items) {
       var item, result;
-      console.log('got items');
-      console.log(items);
       result = (function() {
         var j, len, results;
         results = [];
@@ -430,7 +423,7 @@
         }
         return results;
       })();
-      setHistoryToSessionStorage(result, KEY_HISTORY);
+      setHistoryDataToSessionStorage(result, KEY_HISTORY);
       return printHistory();
     });
   };

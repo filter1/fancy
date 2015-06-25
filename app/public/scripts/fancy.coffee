@@ -1,3 +1,4 @@
+# this is a hack
 userLoggedIn = ->
 	return $('#userName').length > 0
 
@@ -21,26 +22,29 @@ $ ->
 	myNetwork = Network()
 	
 	d3.json "lattice.json", (json) ->
-		myNetwork("#vis", json)
+		myNetwork "#vis", json
 
 		# do this stuff after the json was loaded
 		searchSubmit = ->
-			newConcept = $('#searchText').val().split(' ')
-			myNetwork.applyNewConceptToNetwork(newConcept, 'search')
+			newConcept = $('#searchText').val().split ' '
+			myNetwork.applyNewConceptToNetwork newConcept, 'search'
 
 		$('#searchButton').click -> searchSubmit()
 
+		# submit on enter button
 		$('#searchText').keypress (e) ->
 			if e.which == 13
 				searchSubmit()
 				return false	
 
 		$('#history').on('click', '.list-group-item', ->
-				text = $(this).find('.historyQuery').text().split(' / ')
-				myNetwork.applyNewConceptToNetwork(text, 'history')
+				text = $(this).find '.historyQuery'
+					.text().split ' / ' # / is the delimiter
+				myNetwork.applyNewConceptToNetwork text, 'history'
 			)
 
 		$('.breadcrumb').on('click', 'a', ->
-				text = $(this).attr('terms').split(' ')
-				myNetwork.applyNewConceptToNetwork(text, 'breadcrumb')
+				text = $(this).attr 'terms'
+					.split ' '
+				myNetwork.applyNewConceptToNetwork text, 'breadcrumb'
 			)

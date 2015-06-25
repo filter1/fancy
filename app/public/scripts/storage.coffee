@@ -1,7 +1,7 @@
 KEY_HISTORY = "history"
 KEY_UNSYNCED = "unsynced"
 
-getHistoryFromSessionStorage = (key) ->
+getHistoryDataFromSessionStorage = (key) ->
 	if Modernizr.sessionstorage 
 		dataRaw = sessionStorage.getItem key
 		if dataRaw
@@ -9,66 +9,67 @@ getHistoryFromSessionStorage = (key) ->
 		else
 			return null
 
-setHistoryToSessionStorage = (dataRaw, key) ->
+setHistoryDataToSessionStorage = (dataRaw, key) ->
 	if Modernizr.sessionstorage
 		historyAsString = JSON.stringify dataRaw
 		sessionStorage.setItem key, historyAsString	
 
-saveIt = (historyItem, key) ->
-	history = getHistoryFromSessionStorage key
-	history = [] if not history
+saveNavigationActionToSessionStorage = (historyItem, key) ->
+	history = getHistoryDataFromSessionStorage key
+	history = [] if not history # create if not existent
 	history.push historyItem
-	setHistoryToSessionStorage history, key
+	setHistoryDataToSessionStorage history, key
 
 saveQueryToHistory = (curConceptList, interaction) ->
-	console.log curConceptList
-
-	curConceptString = curConceptList.join ' / '
+	curConceptString = curConceptList.join ' / ' # the '/' functions as a delimiter 
 	historyItem = {'terms': curConceptString, 'interaction': interaction }
-	printToHistoryList historyItem
+	printToHistoryListItem historyItem
 
+	# ony send to server is user is logged in
 	if userLoggedIn()
-		console.log 'User is logged in. Save to Server.'
-		saveIt(historyItem, KEY_HISTORY)
+		saveNavigationActionToSessionStorage(historyItem, KEY_HISTORY)
 		sendToServer historyItem
 	else
-		console.log 'Not logged in.'
-		saveIt(historyItem, KEY_UNSYNCED)
+		saveNavigationActionToSessionStorage(historyItem, KEY_UNSYNCED)
 
+# updates UI
 printHistory = ->
 	if userLoggedIn()
 		key = KEY_HISTORY
 	else
 		key = KEY_UNSYNCED
 
-	history = getHistoryFromSessionStorage key
+	history = getHistoryDataFromSessionStorage key
 	if history
 		for historyItem in history
-			printToHistoryList historyItem
+			printToHistoryListItem historyItem
 
-printToHistoryList = (historyItem) ->
+printToHistoryListItem = (historyItem) ->
 	terms = historyItem['terms']
-	# only print if not 'starting'
+	# only print if results are empty
 	if terms
 		$('#history .list-group').prepend "<a href='#' class='list-group-item'> <span class='historyQuery'>#{terms}</span></a>"
 
+# send one 'navigation action' to the server
 sendToServer = (historyItem) ->
-	$.post '/history', { history: JSON.stringify ([ historyItem ]) }, -> console.log 'sent item to server'
+	$.post '/history', { history: JSON.stringify ([ historyItem ]) }
 
-# Fix this to send this data as JSON.
+# when user logs in and he already navigated thru the lattice, the data is send to the server
+# TODO: Send data as JSON and do not stringify/de-stringify it
 sendUnsyncedToServer = ->
-	history = getHistoryFromSessionStorage KEY_UNSYNCED
+	history = getHistoryDataFromSessionStorage KEY_UNSYNCED
 	if history
 		$.post '/history', { history: JSON.stringify history }, ->
 			console.log 'synced history to server'
 			sessionStorage.removeItem KEY_UNSYNCED
 			getHistoryFromServer()
 
+# query server to get history for current user
+# saves to local storage
+# and updates UI
 getHistoryFromServer = ->
 	$.getJSON '/history', (items) -> 
-		console.log 'got items'
-		console.log items
 		result = ( { terms: item.terms, interaction: item.interaction } for item in items)
 
-		setHistoryToSessionStorage result, KEY_HISTORY
+		setHistoryDataToSessionStorage result, KEY_HISTORY
 		printHistory()
