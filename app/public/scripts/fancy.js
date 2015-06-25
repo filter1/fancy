@@ -22,12 +22,13 @@
     adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('header').outerHeight(true) - 10;
     $('.col-md-6, #viz').height(adaptHeight);
     myNetwork = Network();
-    return d3.json("lattice.json", function(json) {
+    d3.json("data/lattice.json", function(json) {
       var searchSubmit;
       myNetwork("#vis", json);
       searchSubmit = function() {
         var newConcept;
         newConcept = $('#searchText').val().split(' ');
+        $('input').blur();
         return myNetwork.applyNewConceptToNetwork(newConcept, 'search');
       };
       $('#searchButton').click(function() {
@@ -44,10 +45,44 @@
         text = $(this).find('.historyQuery').text().split(' / ');
         return myNetwork.applyNewConceptToNetwork(text, 'history');
       });
-      return $('.breadcrumb').on('click', 'a', function() {
+      $('.breadcrumb').on('click', 'a', function() {
         var text;
         text = $(this).attr('terms').split(' ');
         return myNetwork.applyNewConceptToNetwork(text, 'breadcrumb');
+      });
+      $('#collapseOne').on('hidden.bs.collapse', function() {
+        return $('#collapseTwo').collapse('show');
+      });
+      return $('#collapseTwo').on('hidden.bs.collapse', function() {
+        return $('#collapseOne').collapse('show');
+      });
+    });
+    return $.getJSON('data/suggestions.json', function(suggestions) {
+      var substringMatcher;
+      substringMatcher = function(strs) {
+        return function(q, cb) {
+          var matches, substrRegex;
+          if (q) {
+            matches = [];
+            substrRegex = new RegExp("^" + q, 'i');
+            $.each(strs, function(i, str) {
+              if (substrRegex.test(str)) {
+                return matches.push(str);
+              }
+            });
+            return cb(matches);
+          } else {
+            return cb(strs.slice(0, 21));
+          }
+        };
+      };
+      return $('.typeahead').typeahead({
+        highlight: true,
+        minLength: 0
+      }, {
+        name: 'suggestions',
+        source: substringMatcher(suggestions),
+        limit: 20
       });
     });
   });
@@ -86,7 +121,7 @@
       return update();
     };
     update = function() {
-      var br, i, j, lastIndex, len, ref, term, terms;
+      var br, c, i, j, lastIndex, len, ref, term, terms, termsAsString, termsNormalized;
       curNodesData = filterNodes(allNodes);
       force.nodes(curNodesData);
       updateNodes();
@@ -102,8 +137,22 @@
           ref = curConceptAsListInOrderOfNavigation.slice(0, +(lastIndex - 1) + 1 || 9e9);
           for (i = j = 0, len = ref.length; j < len; i = ++j) {
             term = ref[i];
-            terms = curConceptAsListInOrderOfNavigation.slice(0, +i + 1 || 9e9).join(' ');
-            br.append("<li><a href='#' terms='" + terms + "'>" + term + "</a></li>");
+            terms = curConceptAsListInOrderOfNavigation.slice(0, +i + 1 || 9e9);
+            termsNormalized = ((function() {
+              var k, len1, results;
+              results = [];
+              for (k = 0, len1 = terms.length; k < len1; k++) {
+                c = terms[k];
+                results.push(c.toLowerCase());
+              }
+              return results;
+            })()).sort();
+            if (conceptToId.has(termsNormalized)) {
+              termsAsString = terms.join(' ');
+              br.append("<li><a href='#' terms='" + termsAsString + "'>" + term + "</a></li>");
+            } else {
+              br.append("<li>" + term + "</li>");
+            }
           }
         }
         return br.append("<li>" + curConceptAsListInOrderOfNavigation[lastIndex] + "</li>");
@@ -153,6 +202,9 @@
         filterdNodes = filterdNodes.concat(curConcept.childrenNames.map(function(x) {
           return idToConcept.get(x);
         }));
+        filterdNodes = filterdNodes.filter(function(x) {
+          return x.extensionNames.length > 0;
+        });
       }
       return filterdNodes;
     };

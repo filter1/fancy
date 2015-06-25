@@ -4,7 +4,7 @@ block content
 	#search-bar
 		.row
 			.input-group
-				input(id="searchText", type="text", class="form-control input-lg" placeholder="Search", autofocus="autofocus")
+				input(id="searchText", type="text", class="typeahead form-control input-lg" placeholder="Search", autofocus="autofocus")
 				span.input-group-btn
 						button(id="searchButton", class="btn btn-lg btn-default", type="button")
 								i.glyphicon.glyphicon-search
@@ -23,7 +23,7 @@ block content
 				.panel.panel-default#history
 					.panel-heading#headingOne(role="tab")
 						h4.panel-title
-							a.collapsed(data-toggle="collapse", data-parent="#accordion", href="#collapseOne", aria-expanded="true", aria-controls="collapseOne") Search History
+							a.collapsed(data-toggle="collapse", data-parent="#accordion", href="#collapseOne", aria-expanded="true", aria-controls="collapseOne") Navigation History
 					#collapseOne.panel-collapse.collapse(role="tabpanel", aria-labelledby="headingOne")
 						.list-group
 

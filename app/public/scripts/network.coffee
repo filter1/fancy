@@ -73,8 +73,16 @@ Network = () ->
 			lastIndex = curConceptAsListInOrderOfNavigation.length - 1
 			if lastIndex
 				for term, i in curConceptAsListInOrderOfNavigation[0..lastIndex - 1]
-					terms = curConceptAsListInOrderOfNavigation[0..i].join ' '
-					br.append "<li><a href='#' terms='#{terms}'>#{term}</a></li>"
+					terms = curConceptAsListInOrderOfNavigation[0..i]
+
+					# check if there exist a concept of thos terms
+					termsNormalized = (c.toLowerCase() for c in terms).sort()
+					if conceptToId.has termsNormalized
+						termsAsString = terms.join ' '
+						br.append "<li><a href='#' terms='#{termsAsString}'>#{term}</a></li>"
+					else
+						br.append "<li>#{term}</li>"
+
 			br.append "<li>#{curConceptAsListInOrderOfNavigation[lastIndex]}</li>"
 
 	network.applyNewConceptToNetwork = (newConceptList, interaction) ->
@@ -87,8 +95,6 @@ Network = () ->
 		curConceptAsListInOrderOfNavigation = adaptQueryRepresentation(curConceptAsListInOrderOfNavigation, newConceptList)
 
 		saveQueryToHistory(curConceptAsListInOrderOfNavigation, interaction)
-
-
 
 		update()
 		
@@ -112,6 +118,10 @@ Network = () ->
 			# filterdNodes.push(curConcept)
 			# filterdNodes = filterdNodes.concat curConcept.parentNames.map (x) -> idToConcept.get x
 			filterdNodes = filterdNodes.concat curConcept.childrenNames.map (x) -> idToConcept.get x
+
+			# filter out last node which breaks the interface :/
+			# should not be included in the first place...
+			filterdNodes = filterdNodes.filter (x) -> (x.extensionNames.length > 0)
 			
 		filterdNodes
 
