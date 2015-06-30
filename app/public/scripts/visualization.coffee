@@ -29,7 +29,7 @@ Network = () ->
 
 	# initialize without any concept
 	curConcept = null
-	curConceptAsListInOrderOfNavigation = null
+	focusedConceptInOrderAsListofList = []
 
 	force = d3.layout.force()
 
@@ -54,6 +54,13 @@ Network = () ->
 		update()
 
 	update = () ->
+
+		if focusedConceptInOrderAsListofList.length > 0
+			terms = getCurrentConceptTerms focusedConceptInOrderAsListofList
+			# tranfrom to internal representation
+			conceptProccessed = (c.toLowerCase() for c in terms).sort()
+			curConcept = conceptToId.get conceptProccessed
+
 		curNodesData = filterNodes(allNodes)
 		
 		force.nodes(curNodesData)
@@ -63,41 +70,64 @@ Network = () ->
 
 		# if already something set - no start
 		if curConcept
+
+			console.log 'xx'
+			console.log focusedConceptInOrderAsListofList
+
+			focusedConceptFlatList = getCurrentConceptTerms focusedConceptInOrderAsListofList
+
 			printResultList(curConcept, documents)
-			$('#search-bar input').val curConceptAsListInOrderOfNavigation.join ' '
+			$('#search-bar input').val focusedConceptFlatList.join ' '
 
 			br = $('.breadcrumb')
 			br.text ''
 			br.append "<li><a href='#' terms=''><i class='glyphicon glyphicon-home'/></a></li>"
 
-			lastIndex = curConceptAsListInOrderOfNavigation.length - 1
+			lastIndex = focusedConceptInOrderAsListofList.length - 1
 			if lastIndex
-				for term, i in curConceptAsListInOrderOfNavigation[0..lastIndex - 1]
-					terms = curConceptAsListInOrderOfNavigation[0..i]
+				for concept, i in focusedConceptInOrderAsListofList[0..lastIndex - 1]
+					terms = JSON.stringify(focusedConceptInOrderAsListofList[0..i])
+					conceptString = concept.join ' '
 
-					# check if there exist a concept of thos terms
-					termsNormalized = (c.toLowerCase() for c in terms).sort()
-					if conceptToId.has termsNormalized
-						termsAsString = terms.join ' '
-						br.append "<li><a href='#' terms='#{termsAsString}'>#{term}</a></li>"
-					else
-						br.append "<li>#{term}</li>"
+					console.log conceptString
 
-			br.append "<li>#{curConceptAsListInOrderOfNavigation[lastIndex]}</li>"
+					br.append "<li><a href='#' terms='#{terms}'>#{conceptString}</a></li>"
+			conceptString = focusedConceptInOrderAsListofList[lastIndex].join ' '
+			br.append "<li>#{conceptString}</li>"
 
-	network.applyNewConceptToNetwork = (newConceptList, interaction) ->
+	network.navigationClick = (newConcept) ->
 		force.stop()
 
-		# tranfrom to internal representation
-		conceptProccessed = (c.toLowerCase() for c in newConceptList).sort()
-		curConcept = conceptToId.get conceptProccessed
-
-		curConceptAsListInOrderOfNavigation = adaptQueryRepresentation(curConceptAsListInOrderOfNavigation, newConceptList)
-
-		saveQueryToHistory(curConceptAsListInOrderOfNavigation, interaction)
+		newConceptTerms = newConcept.split ','
+		focusedConceptInOrderAsListofList.push newConceptTerms
+		saveNavigationToHistory(focusedConceptInOrderAsListofList, 'click')
 
 		update()
-		
+
+	network.navigationBreadcrumb = (data) ->
+		force.stop()
+
+		focusedConceptInOrderAsListofList = data
+		saveNavigationToHistory(focusedConceptInOrderAsListofList, 'breadcrumb')
+
+		update()
+
+	network.navigationHistory = (data) ->
+		force.stop()
+
+		focusedConceptInOrderAsListofList = data
+		saveNavigationToHistory(focusedConceptInOrderAsListofList, 'history')
+
+		update()
+
+	network.navigationSearch = (query) ->
+		force.stop()
+
+		focusedConceptInOrderAsListofList = ([w] for w in query.split(' ')) #todo
+		saveNavigationToHistory(focusedConceptInOrderAsListofList, 'search')
+
+		update()
+
 	setupData = (data) ->
 		nodes = data.lattice
 
@@ -170,7 +200,7 @@ Network = () ->
 
 		node.on("mouseover", showDetails)
 			.on("mouseout", hideDetails)
-			.on("click", navigateNewConcept)
+			.on("click", clickFunction)
 
 		node.exit().remove()
 
@@ -248,7 +278,12 @@ Network = () ->
 		node.select('text').style("font-weight", "normal")
 			# .style("font-size", "1em")
 	
-	navigateNewConcept = (d, i) ->
-		network.applyNewConceptToNetwork(d.intensionNames, 'click')
+	clickFunction = (d, i) ->
+
+		x = d3.select(this).select('text').text()
+		console.log x
+		console.log d
+		console.log i
+		network.navigationClick(x) # how to get text?
 
 	network

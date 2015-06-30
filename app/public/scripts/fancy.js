@@ -1,6 +1,5 @@
 (function() {
-  var KEY_HISTORY, KEY_UNSYNCED, Network, adaptQueryRepresentation, getHistoryDataFromSessionStorage, getHistoryFromServer, printHistory, printResultList, printToHistoryListItem, saveNavigationActionToSessionStorage, saveQueryToHistory, sendToServer, sendUnsyncedToServer, setHistoryDataToSessionStorage, userLoggedIn, whatIsInXButNotInY,
-    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+  var KEY_HISTORY, KEY_UNSYNCED, Network, getHistoryDataFromSessionStorage, getHistoryFromServer, printHistory, printResultList, printToHistoryListItem, saveNavigationActionToSessionStorage, saveNavigationToHistory, sendToServer, sendUnsyncedToServer, setHistoryDataToSessionStorage, userLoggedIn, whatIsInXButNotInY;
 
   userLoggedIn = function() {
     return $('#userName').length > 0;
@@ -26,10 +25,10 @@
       var searchSubmit;
       myNetwork("#vis", json);
       searchSubmit = function() {
-        var newConcept;
-        newConcept = $('#searchText').val().split(' ');
+        var query;
+        query = $('#searchText').val();
         $('input').blur();
-        return myNetwork.applyNewConceptToNetwork(newConcept, 'search');
+        return myNetwork.navigationSearch(query);
       };
       $('#searchButton').click(function() {
         return searchSubmit();
@@ -41,14 +40,16 @@
         }
       });
       $('#history').on('click', '.list-group-item', function() {
-        var text;
-        text = $(this).find('.historyQuery').text().split(' / ');
-        return myNetwork.applyNewConceptToNetwork(text, 'history');
+        var data, text;
+        text = $(this).find('.historyQuery').attr('terms');
+        data = JSON.parse(text);
+        return myNetwork.navigationHistory(data);
       });
       $('.breadcrumb').on('click', 'a', function() {
-        var text;
-        text = $(this).attr('terms').split(' ');
-        return myNetwork.applyNewConceptToNetwork(text, 'breadcrumb');
+        var data, text;
+        text = $(this).attr('terms');
+        data = JSON.parse(text);
+        return myNetwork.navigationBreadcrumb(data);
       });
       $('#collapseOne').on('hidden.bs.collapse', function() {
         return $('#collapseTwo').collapse('show');
@@ -87,8 +88,177 @@
     });
   });
 
+  KEY_HISTORY = "history";
+
+  KEY_UNSYNCED = "unsynced";
+
+  getHistoryDataFromSessionStorage = function(key) {
+    var dataRaw;
+    if (Modernizr.sessionstorage) {
+      dataRaw = sessionStorage.getItem(key);
+      if (dataRaw) {
+        return JSON.parse(dataRaw);
+      } else {
+        return null;
+      }
+    }
+  };
+
+  setHistoryDataToSessionStorage = function(dataRaw, key) {
+    var historyAsString;
+    if (Modernizr.sessionstorage) {
+      historyAsString = JSON.stringify(dataRaw);
+      return sessionStorage.setItem(key, historyAsString);
+    }
+  };
+
+  saveNavigationActionToSessionStorage = function(historyItem, key) {
+    var history;
+    history = getHistoryDataFromSessionStorage(key);
+    if (!history) {
+      history = [];
+    }
+    history.push(historyItem);
+    return setHistoryDataToSessionStorage(history, key);
+  };
+
+  saveNavigationToHistory = function(data, interaction) {
+    var historyItem;
+    historyItem = {
+      'terms': data,
+      'interaction': interaction
+    };
+    printToHistoryListItem(historyItem);
+    if (userLoggedIn()) {
+      saveNavigationActionToSessionStorage(historyItem, KEY_HISTORY);
+      return sendToServer(historyItem);
+    } else {
+      return saveNavigationActionToSessionStorage(historyItem, KEY_UNSYNCED);
+    }
+  };
+
+  printHistory = function() {
+    var history, historyItem, j, key, len, results;
+    if (userLoggedIn()) {
+      key = KEY_HISTORY;
+    } else {
+      key = KEY_UNSYNCED;
+    }
+    history = getHistoryDataFromSessionStorage(key);
+    if (history) {
+      results = [];
+      for (j = 0, len = history.length; j < len; j++) {
+        historyItem = history[j];
+        results.push(printToHistoryListItem(historyItem));
+      }
+      return results;
+    }
+  };
+
+  printToHistoryListItem = function(historyItem) {
+    var data, items, terms, w;
+    items = historyItem['terms'];
+    if (items) {
+      data = JSON.stringify(items);
+      terms = ((function() {
+        var j, len, results;
+        results = [];
+        for (j = 0, len = items.length; j < len; j++) {
+          w = items[j];
+          results.push(w.join(' '));
+        }
+        return results;
+      })()).join(' / ');
+      return $('#history .list-group').prepend("<a href='#' class='list-group-item'> <span class='historyQuery' terms=" + data + ">" + terms + "</span></a>");
+    }
+  };
+
+  sendToServer = function(historyItem) {
+    return $.post('/history', {
+      history: JSON.stringify([historyItem])
+    });
+  };
+
+  sendUnsyncedToServer = function() {
+    var history;
+    history = getHistoryDataFromSessionStorage(KEY_UNSYNCED);
+    if (history) {
+      return $.post('/history', {
+        history: JSON.stringify(history)
+      }, function() {
+        console.log('synced history to server');
+        sessionStorage.removeItem(KEY_UNSYNCED);
+        return getHistoryFromServer();
+      });
+    }
+  };
+
+  getHistoryFromServer = function() {
+    return $.getJSON('/history', function(items) {
+      var item, result;
+      result = (function() {
+        var j, len, results;
+        results = [];
+        for (j = 0, len = items.length; j < len; j++) {
+          item = items[j];
+          results.push({
+            terms: JSON.parse(item.terms),
+            interaction: item.interaction
+          });
+        }
+        return results;
+      })();
+      setHistoryDataToSessionStorage(result, KEY_HISTORY);
+      return printHistory();
+    });
+  };
+
+  whatIsInXButNotInY = function(x, y) {
+    return x.filter(function(z) {
+      return y.indexOf(z) < 0;
+    });
+  };
+
+  this.getCurrentConceptTerms = function(focusedConceptInOrderAsListofList) {
+    console.log(focusedConceptInOrderAsListofList);
+    return focusedConceptInOrderAsListofList.reduce(function(a, b) {
+      return a.concat(b);
+    });
+  };
+
+  this.sendLikeToServer = function(url, title, element) {
+    return $.post('/likes', {
+      documentURL: url,
+      documentTitle: title
+    }).done(function() {
+      return element.style.color = "FireBrick";
+    }).fail(function(err) {
+      alert('You have to be logged in to save documents.');
+      return console.log(err);
+    });
+  };
+
+  printResultList = function(curConcept, documents) {
+    var button, details, doc, docId, i, j, len, resultingDocuments, results, url;
+    details = $('#details .list-group').text('');
+    resultingDocuments = curConcept.extensionNames;
+    $('#numResults').text(resultingDocuments.length);
+    resultingDocuments = resultingDocuments.slice(0, 101);
+    i = 1;
+    results = [];
+    for (j = 0, len = resultingDocuments.length; j < len; j++) {
+      docId = resultingDocuments[j];
+      doc = documents.get(docId);
+      url = "http://www.mcu.es/ccbae/es/consulta/resultados_busqueda.cmd?tipo_busqueda=mapas_planos_dibujos&posicion=1&forma=ficha&id=" + docId;
+      button = "<button class='btn pull-right' onclick='sendLikeToServer(\"" + url + "\" ,\"" + doc.title + "\", this);'> <span class='glyphicon glyphicon-heart'></span></button>";
+      details.append("<li class='list-group-item'><a href='" + url + "' target='_blank'><h4 class='list-group-item-heading'>" + doc.title + "</h4></a><p class='list-group-item-text'>" + doc.content + "</p>" + button + "<div class='clearfix'/></li>");
+      results.push(i += 1);
+    }
+    return results;
+  };
+
   Network = function() {
-    var allNodes, collide, collisionPadding, conceptToId, createLabels, curConcept, curConceptAsListInOrderOfNavigation, curLinksData, curNodesData, documents, filterNodes, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, navigateNewConcept, network, node, nodesG, radiusScale, setupData, showDetails, update, updateNodes, width, zoomed;
+    var allNodes, clickFunction, collide, collisionPadding, conceptToId, createLabels, curConcept, curLinksData, curNodesData, documents, filterNodes, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, network, node, nodesG, radiusScale, setupData, showDetails, update, updateNodes, width, zoomed;
     width = parseInt(d3.select("#vis").style("width"));
     height = parseInt(d3.select("#vis").style("height"));
     jitter = 0.5;
@@ -108,7 +278,7 @@
     nodesG = null;
     node = null;
     curConcept = null;
-    curConceptAsListInOrderOfNavigation = null;
+    focusedConceptInOrderAsListofList = [];
     force = d3.layout.force();
     network = function(selection, data) {
       var vis, zoom;
@@ -121,58 +291,82 @@
       return update();
     };
     update = function() {
-      var br, c, i, j, lastIndex, len, ref, term, terms, termsAsString, termsNormalized;
+      var br, c, concept, conceptProccessed, conceptString, focusedConceptFlatList, i, j, lastIndex, len, ref, terms;
+      if (focusedConceptInOrderAsListofList.length > 0) {
+        terms = getCurrentConceptTerms(focusedConceptInOrderAsListofList);
+        conceptProccessed = ((function() {
+          var j, len, results;
+          results = [];
+          for (j = 0, len = terms.length; j < len; j++) {
+            c = terms[j];
+            results.push(c.toLowerCase());
+          }
+          return results;
+        })()).sort();
+        curConcept = conceptToId.get(conceptProccessed);
+      }
       curNodesData = filterNodes(allNodes);
       force.nodes(curNodesData);
       updateNodes();
       force.start();
       if (curConcept) {
+        console.log('xx');
+        console.log(focusedConceptInOrderAsListofList);
+        focusedConceptFlatList = getCurrentConceptTerms(focusedConceptInOrderAsListofList);
         printResultList(curConcept, documents);
-        $('#search-bar input').val(curConceptAsListInOrderOfNavigation.join(' '));
+        $('#search-bar input').val(focusedConceptFlatList.join(' '));
         br = $('.breadcrumb');
         br.text('');
         br.append("<li><a href='#' terms=''><i class='glyphicon glyphicon-home'/></a></li>");
-        lastIndex = curConceptAsListInOrderOfNavigation.length - 1;
+        lastIndex = focusedConceptInOrderAsListofList.length - 1;
         if (lastIndex) {
-          ref = curConceptAsListInOrderOfNavigation.slice(0, +(lastIndex - 1) + 1 || 9e9);
+          ref = focusedConceptInOrderAsListofList.slice(0, +(lastIndex - 1) + 1 || 9e9);
           for (i = j = 0, len = ref.length; j < len; i = ++j) {
-            term = ref[i];
-            terms = curConceptAsListInOrderOfNavigation.slice(0, +i + 1 || 9e9);
-            termsNormalized = ((function() {
-              var k, len1, results;
-              results = [];
-              for (k = 0, len1 = terms.length; k < len1; k++) {
-                c = terms[k];
-                results.push(c.toLowerCase());
-              }
-              return results;
-            })()).sort();
-            if (conceptToId.has(termsNormalized)) {
-              termsAsString = terms.join(' ');
-              br.append("<li><a href='#' terms='" + termsAsString + "'>" + term + "</a></li>");
-            } else {
-              br.append("<li>" + term + "</li>");
-            }
+            concept = ref[i];
+            terms = JSON.stringify(focusedConceptInOrderAsListofList.slice(0, +i + 1 || 9e9));
+            conceptString = concept.join(' ');
+            console.log(conceptString);
+            br.append("<li><a href='#' terms='" + terms + "'>" + conceptString + "</a></li>");
           }
         }
-        return br.append("<li>" + curConceptAsListInOrderOfNavigation[lastIndex] + "</li>");
+        conceptString = focusedConceptInOrderAsListofList[lastIndex].join(' ');
+        return br.append("<li>" + conceptString + "</li>");
       }
     };
-    network.applyNewConceptToNetwork = function(newConceptList, interaction) {
-      var c, conceptProccessed;
+    network.navigationClick = function(newConcept) {
+      var newConceptTerms;
       force.stop();
-      conceptProccessed = ((function() {
-        var j, len, results;
+      newConceptTerms = newConcept.split(',');
+      focusedConceptInOrderAsListofList.push(newConceptTerms);
+      saveNavigationToHistory(focusedConceptInOrderAsListofList, 'click');
+      return update();
+    };
+    network.navigationBreadcrumb = function(data) {
+      force.stop();
+      focusedConceptInOrderAsListofList = data;
+      saveNavigationToHistory(focusedConceptInOrderAsListofList, 'breadcrumb');
+      return update();
+    };
+    network.navigationHistory = function(data) {
+      force.stop();
+      focusedConceptInOrderAsListofList = data;
+      saveNavigationToHistory(focusedConceptInOrderAsListofList, 'history');
+      return update();
+    };
+    network.navigationSearch = function(query) {
+      var w;
+      force.stop();
+      focusedConceptInOrderAsListofList = (function() {
+        var j, len, ref, results;
+        ref = query.split(' ');
         results = [];
-        for (j = 0, len = newConceptList.length; j < len; j++) {
-          c = newConceptList[j];
-          results.push(c.toLowerCase());
+        for (j = 0, len = ref.length; j < len; j++) {
+          w = ref[j];
+          results.push([w]);
         }
         return results;
-      })()).sort();
-      curConcept = conceptToId.get(conceptProccessed);
-      curConceptAsListInOrderOfNavigation = adaptQueryRepresentation(curConceptAsListInOrderOfNavigation, newConceptList);
-      saveQueryToHistory(curConceptAsListInOrderOfNavigation, interaction);
+      })();
+      saveNavigationToHistory(focusedConceptInOrderAsListofList, 'search');
       return update();
     };
     setupData = function(data) {
@@ -230,7 +424,7 @@
       node.append("text").text(function(x) {
         return x.extensionNames.length;
       }).attr("class", "count").attr("dy", "1.1em");
-      node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", navigateNewConcept);
+      node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", clickFunction);
       return node.exit().remove();
     };
     forceTick = function(e) {
@@ -289,195 +483,15 @@
       });
       return node.select('text').style("font-weight", "normal");
     };
-    navigateNewConcept = function(d, i) {
-      return network.applyNewConceptToNetwork(d.intensionNames, 'click');
+    clickFunction = function(d, i) {
+      var x;
+      x = d3.select(this).select('text').text();
+      console.log(x);
+      console.log(d);
+      console.log(i);
+      return network.navigationClick(x);
     };
     return network;
-  };
-
-  adaptQueryRepresentation = function(curConceptListInOrder, newConceptList) {
-    var w, whatIsNew;
-    if (curConceptListInOrder) {
-      if (newConceptList.length >= curConceptListInOrder.length) {
-        whatIsNew = whatIsInXButNotInY(newConceptList, curConceptListInOrder);
-        if (whatIsNew.length === newConceptList.length) {
-          curConceptListInOrder = newConceptList;
-        } else {
-          curConceptListInOrder = curConceptListInOrder.concat(whatIsNew);
-        }
-      } else {
-        curConceptListInOrder = (function() {
-          var j, len, results;
-          results = [];
-          for (j = 0, len = curConceptListInOrder.length; j < len; j++) {
-            w = curConceptListInOrder[j];
-            if (indexOf.call(newConceptList, w) >= 0) {
-              results.push(w);
-            }
-          }
-          return results;
-        })();
-        if (curConceptListInOrder.length === 0) {
-          curConceptListInOrder = newConceptList;
-        }
-      }
-    } else {
-      curConceptListInOrder = newConceptList;
-    }
-    return curConceptListInOrder;
-  };
-
-  whatIsInXButNotInY = function(x, y) {
-    return x.filter(function(z) {
-      return y.indexOf(z) < 0;
-    });
-  };
-
-  this.sendLikeToServer = function(url, title, element) {
-    return $.post('/likes', {
-      documentURL: url,
-      documentTitle: title
-    }).done(function() {
-      return element.style.color = "FireBrick";
-    }).fail(function(err) {
-      alert('You have to be logged in to save documents.');
-      return console.log(err);
-    });
-  };
-
-  printResultList = function(curConcept, documents) {
-    var button, details, doc, docId, i, j, len, resultingDocuments, results, url;
-    details = $('#details .list-group').text('');
-    resultingDocuments = curConcept.extensionNames;
-    $('#numResults').text(resultingDocuments.length);
-    resultingDocuments = resultingDocuments.slice(0, 101);
-    i = 1;
-    results = [];
-    for (j = 0, len = resultingDocuments.length; j < len; j++) {
-      docId = resultingDocuments[j];
-      doc = documents.get(docId);
-      url = "http://www.mcu.es/ccbae/es/consulta/resultados_busqueda.cmd?tipo_busqueda=mapas_planos_dibujos&posicion=1&forma=ficha&id=" + docId;
-      button = "<button class='btn pull-right' onclick='sendLikeToServer(\"" + url + "\" ,\"" + doc.title + "\", this);'> <span class='glyphicon glyphicon-heart'></span></button>";
-      details.append("<li class='list-group-item'><a href='" + url + "' target='_blank'><h4 class='list-group-item-heading'>" + doc.title + "</h4></a><p class='list-group-item-text'>" + doc.content + "</p>" + button + "<div class='clearfix'/></li>");
-      results.push(i += 1);
-    }
-    return results;
-  };
-
-  KEY_HISTORY = "history";
-
-  KEY_UNSYNCED = "unsynced";
-
-  getHistoryDataFromSessionStorage = function(key) {
-    var dataRaw;
-    if (Modernizr.sessionstorage) {
-      dataRaw = sessionStorage.getItem(key);
-      if (dataRaw) {
-        return JSON.parse(dataRaw);
-      } else {
-        return null;
-      }
-    }
-  };
-
-  setHistoryDataToSessionStorage = function(dataRaw, key) {
-    var historyAsString;
-    if (Modernizr.sessionstorage) {
-      historyAsString = JSON.stringify(dataRaw);
-      return sessionStorage.setItem(key, historyAsString);
-    }
-  };
-
-  saveNavigationActionToSessionStorage = function(historyItem, key) {
-    var history;
-    history = getHistoryDataFromSessionStorage(key);
-    if (!history) {
-      history = [];
-    }
-    history.push(historyItem);
-    return setHistoryDataToSessionStorage(history, key);
-  };
-
-  saveQueryToHistory = function(curConceptList, interaction) {
-    var curConceptString, historyItem;
-    curConceptString = curConceptList.join(' / ');
-    historyItem = {
-      'terms': curConceptString,
-      'interaction': interaction
-    };
-    printToHistoryListItem(historyItem);
-    if (userLoggedIn()) {
-      saveNavigationActionToSessionStorage(historyItem, KEY_HISTORY);
-      return sendToServer(historyItem);
-    } else {
-      return saveNavigationActionToSessionStorage(historyItem, KEY_UNSYNCED);
-    }
-  };
-
-  printHistory = function() {
-    var history, historyItem, j, key, len, results;
-    if (userLoggedIn()) {
-      key = KEY_HISTORY;
-    } else {
-      key = KEY_UNSYNCED;
-    }
-    history = getHistoryDataFromSessionStorage(key);
-    if (history) {
-      results = [];
-      for (j = 0, len = history.length; j < len; j++) {
-        historyItem = history[j];
-        results.push(printToHistoryListItem(historyItem));
-      }
-      return results;
-    }
-  };
-
-  printToHistoryListItem = function(historyItem) {
-    var terms;
-    terms = historyItem['terms'];
-    if (terms) {
-      return $('#history .list-group').prepend("<a href='#' class='list-group-item'> <span class='historyQuery'>" + terms + "</span></a>");
-    }
-  };
-
-  sendToServer = function(historyItem) {
-    return $.post('/history', {
-      history: JSON.stringify([historyItem])
-    });
-  };
-
-  sendUnsyncedToServer = function() {
-    var history;
-    history = getHistoryDataFromSessionStorage(KEY_UNSYNCED);
-    if (history) {
-      return $.post('/history', {
-        history: JSON.stringify(history)
-      }, function() {
-        console.log('synced history to server');
-        sessionStorage.removeItem(KEY_UNSYNCED);
-        return getHistoryFromServer();
-      });
-    }
-  };
-
-  getHistoryFromServer = function() {
-    return $.getJSON('/history', function(items) {
-      var item, result;
-      result = (function() {
-        var j, len, results;
-        results = [];
-        for (j = 0, len = items.length; j < len; j++) {
-          item = items[j];
-          results.push({
-            terms: item.terms,
-            interaction: item.interaction
-          });
-        }
-        return results;
-      })();
-      setHistoryDataToSessionStorage(result, KEY_HISTORY);
-      return printHistory();
-    });
   };
 
 }).call(this);

@@ -131,7 +131,7 @@ app.post('/history', isAuthenticatedForData, (req, res) ->
 		user = res.locals.user
 		history = JSON.parse req.body.history
 		for item in history
-			user.createHistoryitem( {interaction: item.interaction, terms: item.terms} )
+			user.createHistoryitem( {interaction: item.interaction, terms: JSON.stringify(item.terms)} )
 					.then( -> console.log "successfully inserted new history" )
 		res.end()
 	)

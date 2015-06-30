@@ -191,7 +191,7 @@
       item = history[i];
       user.createHistoryitem({
         interaction: item.interaction,
-        terms: item.terms
+        terms: JSON.stringify(item.terms)
       }).then(function() {
         return console.log("successfully inserted new history");
       });

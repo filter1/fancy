@@ -20,9 +20,8 @@ saveNavigationActionToSessionStorage = (historyItem, key) ->
 	history.push historyItem
 	setHistoryDataToSessionStorage history, key
 
-saveQueryToHistory = (curConceptList, interaction) ->
-	curConceptString = curConceptList.join ' / ' # the '/' functions as a delimiter 
-	historyItem = {'terms': curConceptString, 'interaction': interaction }
+saveNavigationToHistory = (data, interaction) ->
+	historyItem = {'terms': data, 'interaction': interaction }
 	printToHistoryListItem historyItem
 
 	# ony send to server is user is logged in
@@ -45,10 +44,14 @@ printHistory = ->
 			printToHistoryListItem historyItem
 
 printToHistoryListItem = (historyItem) ->
-	terms = historyItem['terms']
+	items = historyItem['terms']
 	# only print if results are empty
-	if terms
-		$('#history .list-group').prepend "<a href='#' class='list-group-item'> <span class='historyQuery'>#{terms}</span></a>"
+	if items
+		data = JSON.stringify items
+
+		terms = (w.join(' ') for w in items).join ' / '
+
+		$('#history .list-group').prepend "<a href='#' class='list-group-item'> <span class='historyQuery' terms=#{data}>#{terms}</span></a>"
 
 # send one 'navigation action' to the server
 sendToServer = (historyItem) ->
@@ -69,7 +72,7 @@ sendUnsyncedToServer = ->
 # and updates UI
 getHistoryFromServer = ->
 	$.getJSON '/history', (items) -> 
-		result = ( { terms: item.terms, interaction: item.interaction } for item in items)
+		result = ( { terms: JSON.parse(item.terms), interaction: item.interaction } for item in items)
 
 		setHistoryDataToSessionStorage result, KEY_HISTORY
 		printHistory()

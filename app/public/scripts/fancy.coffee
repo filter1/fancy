@@ -26,9 +26,9 @@ $ ->
 
 		# do this stuff after the json was loaded
 		searchSubmit = ->
-			newConcept = $('#searchText').val().split ' '
+			query = $('#searchText').val()
 			$('input').blur()
-			myNetwork.applyNewConceptToNetwork newConcept, 'search'
+			myNetwork.navigationSearch query
 
 		$('#searchButton').click -> searchSubmit()
 
@@ -40,14 +40,15 @@ $ ->
 
 		$('#history').on('click', '.list-group-item', ->
 				text = $(this).find '.historyQuery'
-					.text().split ' / ' # / is the delimiter
-				myNetwork.applyNewConceptToNetwork text, 'history'
+					.attr 'terms'
+				data = JSON.parse text
+				myNetwork.navigationHistory(data)
 			)
 
 		$('.breadcrumb').on('click', 'a', ->
 				text = $(this).attr 'terms'
-					.split ' '
-				myNetwork.applyNewConceptToNetwork text, 'breadcrumb'
+				data = JSON.parse text
+				myNetwork.navigationBreadcrumb(data)
 			)
 
 		# this sections manages the collapse items for results/history
