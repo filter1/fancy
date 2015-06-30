@@ -46,7 +46,7 @@ printHistory = ->
 printToHistoryListItem = (historyItem) ->
 	items = historyItem['terms']
 	# only print if results are empty
-	if items
+	if items and items.length > 0 and items[0].length > 0
 		data = JSON.stringify items
 
 		terms = (w.join(' ') for w in items).join ' / '

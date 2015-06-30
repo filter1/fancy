@@ -1,5 +1,5 @@
 (function() {
-  var KEY_HISTORY, KEY_UNSYNCED, Network, getHistoryDataFromSessionStorage, getHistoryFromServer, printHistory, printResultList, printToHistoryListItem, saveNavigationActionToSessionStorage, saveNavigationToHistory, sendToServer, sendUnsyncedToServer, setHistoryDataToSessionStorage, userLoggedIn, whatIsInXButNotInY;
+  var KEY_HISTORY, KEY_UNSYNCED, getHistoryDataFromSessionStorage, getHistoryFromServer, printHistory, printResultList, printToHistoryListItem, saveNavigationActionToSessionStorage, saveNavigationToHistory, sendToServer, sendUnsyncedToServer, setHistoryDataToSessionStorage, userLoggedIn;
 
   userLoggedIn = function() {
     return $('#userName').length > 0;
@@ -158,7 +158,7 @@
   printToHistoryListItem = function(historyItem) {
     var data, items, terms, w;
     items = historyItem['terms'];
-    if (items) {
+    if (items && items.length > 0 && items[0].length > 0) {
       data = JSON.stringify(items);
       terms = ((function() {
         var j, len, results;
@@ -213,19 +213,6 @@
     });
   };
 
-  whatIsInXButNotInY = function(x, y) {
-    return x.filter(function(z) {
-      return y.indexOf(z) < 0;
-    });
-  };
-
-  this.getCurrentConceptTerms = function(focusedConceptInOrderAsListofList) {
-    console.log(focusedConceptInOrderAsListofList);
-    return focusedConceptInOrderAsListofList.reduce(function(a, b) {
-      return a.concat(b);
-    });
-  };
-
   this.sendLikeToServer = function(url, title, element) {
     return $.post('/likes', {
       documentURL: url,
@@ -239,26 +226,29 @@
   };
 
   printResultList = function(curConcept, documents) {
-    var button, details, doc, docId, i, j, len, resultingDocuments, results, url;
+    var button, details, doc, docId, j, len, nDocs, resultingDocuments, results, url;
     details = $('#details .list-group').text('');
     resultingDocuments = curConcept.extensionNames;
-    $('#numResults').text(resultingDocuments.length);
-    resultingDocuments = resultingDocuments.slice(0, 101);
-    i = 1;
-    results = [];
-    for (j = 0, len = resultingDocuments.length; j < len; j++) {
-      docId = resultingDocuments[j];
-      doc = documents.get(docId);
-      url = "http://www.mcu.es/ccbae/es/consulta/resultados_busqueda.cmd?tipo_busqueda=mapas_planos_dibujos&posicion=1&forma=ficha&id=" + docId;
-      button = "<button class='btn pull-right' onclick='sendLikeToServer(\"" + url + "\" ,\"" + doc.title + "\", this);'> <span class='glyphicon glyphicon-heart'></span></button>";
-      details.append("<li class='list-group-item'><a href='" + url + "' target='_blank'><h4 class='list-group-item-heading'>" + doc.title + "</h4></a><p class='list-group-item-text'>" + doc.content + "</p>" + button + "<div class='clearfix'/></li>");
-      results.push(i += 1);
+    nDocs = resultingDocuments.length;
+    $('#numResults').text(nDocs);
+    if (nDocs > 0) {
+      resultingDocuments = resultingDocuments.slice(0, 101);
+      results = [];
+      for (j = 0, len = resultingDocuments.length; j < len; j++) {
+        docId = resultingDocuments[j];
+        doc = documents.get(docId);
+        url = "http://www.mcu.es/ccbae/es/consulta/resultados_busqueda.cmd?tipo_busqueda=mapas_planos_dibujos&posicion=1&forma=ficha&id=" + docId;
+        button = "<button class='btn pull-right' data-toggle='tooltip' data-placement='left' title='Bookmark this document. Requieres login.' onclick='sendLikeToServer(\"" + url + "\" ,\"" + doc.title + "\", this);'> <span class='glyphicon glyphicon-heart'></span></button>";
+        results.push(details.append("<li class='list-group-item'><a href='" + url + "' target='_blank'><h4 class='list-group-item-heading'>" + doc.title + "</h4></a><p class='list-group-item-text'>" + doc.content + "</p>" + button + "<div class='clearfix'/></li>"));
+      }
+      return results;
+    } else {
+      return details.append("<div class='text-center' <br><br> No results.<br><br></div> ");
     }
-    return results;
   };
 
-  Network = function() {
-    var allNodes, clickFunction, collide, collisionPadding, conceptToId, createLabels, curConcept, curLinksData, curNodesData, documents, filterNodes, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, network, node, nodesG, radiusScale, setupData, showDetails, update, updateNodes, width, zoomed;
+  this.Network = function() {
+    var allNodes, clickFunction, collide, collisionPadding, conceptToId, createLabels, curConcept, curLinksData, curNodesData, documents, filterNodes, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, network, node, nodesG, radiusScale, setupData, showDetails, update, updateNodes, whatIsInXButNotInY, width, zoomed;
     width = parseInt(d3.select("#vis").style("width"));
     height = parseInt(d3.select("#vis").style("height"));
     jitter = 0.5;
@@ -317,7 +307,7 @@
         $('#search-bar input').val(focusedConceptFlatList.join(' '));
         br = $('.breadcrumb');
         br.text('');
-        br.append("<li><a href='#' terms=''><i class='glyphicon glyphicon-home'/></a></li>");
+        br.append("<li><a href='#' terms='[[]]'><i class='glyphicon glyphicon-home'/></a></li>");
         lastIndex = focusedConceptInOrderAsListofList.length - 1;
         if (lastIndex) {
           ref = focusedConceptInOrderAsListofList.slice(0, +(lastIndex - 1) + 1 || 9e9);
@@ -490,6 +480,17 @@
       console.log(d);
       console.log(i);
       return network.navigationClick(x);
+    };
+    whatIsInXButNotInY = function(x, y) {
+      return x.filter(function(z) {
+        return y.indexOf(z) < 0;
+      });
+    };
+    this.getCurrentConceptTerms = function(focusedConceptInOrderAsListofList) {
+      console.log(focusedConceptInOrderAsListofList);
+      return focusedConceptInOrderAsListofList.reduce(function(a, b) {
+        return a.concat(b);
+      });
     };
     return network;
   };

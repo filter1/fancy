@@ -19,8 +19,9 @@ $ ->
 	adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('header').outerHeight(true) - 10
 	$('.col-md-6, #viz').height adaptHeight
 
-	myNetwork = Network()
-	
+
+	myNetwork = Network()	
+
 	d3.json "data/lattice.json", (json) ->
 		myNetwork "#vis", json
 
@@ -60,11 +61,6 @@ $ ->
 		$('#collapseTwo').on 'hidden.bs.collapse', ->
 			$('#collapseOne').collapse('show')
 
-	# suggestions = new Bloodhound({
-	#   datumTokenizer: Bloodhound.tokenizers.whitespace,
-	#   queryTokenizer: Bloodhound.tokenizers.whitespace,
-	#   prefetch: 'data/suggestions.json'
-	# });
 
 	$.getJSON 'data/suggestions.json', (suggestions) ->
 

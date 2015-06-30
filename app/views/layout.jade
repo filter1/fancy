@@ -17,17 +17,16 @@ html(lang="en")
 						li
 							a(href='/') Home
 						li
-							if userName
-								a#userName(href='/user') #{userName}
-							else
+							a(href='/infos') Infos
+						li
+							unless userName
 								a(href='/login') Login
 						if userName
 							li
-								a(href='/likes') My Likes
+								a(href='/likes') #{userName}'s Bookmarks
 							li
 								a(href='/logout') Logout
-						li
-							a(href='/infos') Infos
+
 
 				div
 					if alert

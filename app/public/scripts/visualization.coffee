@@ -1,4 +1,5 @@
-Network = () ->
+
+@Network = () ->
 	width = parseInt(d3.select("#vis").style("width"))
 	height = parseInt(d3.select("#vis").style("height"))
 
@@ -81,7 +82,7 @@ Network = () ->
 
 			br = $('.breadcrumb')
 			br.text ''
-			br.append "<li><a href='#' terms=''><i class='glyphicon glyphicon-home'/></a></li>"
+			br.append "<li><a href='#' terms='[[]]'><i class='glyphicon glyphicon-home'/></a></li>"
 
 			lastIndex = focusedConceptInOrderAsListofList.length - 1
 			if lastIndex
@@ -285,5 +286,14 @@ Network = () ->
 		console.log d
 		console.log i
 		network.navigationClick(x) # how to get text?
+
+	# filter some stuff out
+	whatIsInXButNotInY = (x, y) ->
+		x.filter (z) -> y.indexOf(z) < 0
+
+	# flatten list
+	@getCurrentConceptTerms = (focusedConceptInOrderAsListofList) ->
+		console.log focusedConceptInOrderAsListofList
+		return focusedConceptInOrderAsListofList.reduce (a, b) -> a.concat b
 
 	network
