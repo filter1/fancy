@@ -248,16 +248,18 @@
   };
 
   this.Network = function() {
-    var allNodes, clickFunction, collide, collisionPadding, conceptToId, createLabels, curConcept, curLinksData, curNodesData, documents, filterNodes, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxRadius, minCollisionRadius, minRadius, network, node, nodesG, radiusScale, setupData, showDetails, update, updateNodes, whatIsInXButNotInY, width, zoomed;
+    var allNodes, clickFunction, collide, collisionPadding, conceptToId, createLabels, curConcept, curLinksData, curNodesData, documents, filterNodes, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxFontSize, maxRadius, minCollisionRadius, minFontSize, minRadius, network, node, nodesG, radiusScale, setupData, showDetails, update, updateNodes, whatIsInXButNotInY, width, zoomed;
     width = parseInt(d3.select("#vis").style("width"));
     height = parseInt(d3.select("#vis").style("height"));
     jitter = 0.5;
     collisionPadding = 10;
     minCollisionRadius = 20;
     minRadius = 10;
-    maxRadius = 40;
-    radiusScale = d3.scale.sqrt().range([minRadius, maxRadius]).domain([0, 100]);
-    fontScale = d3.scale.linear().range([8, 16]).domain([0, 100]);
+    maxRadius = 100;
+    minFontSize = 1;
+    maxFontSize = 5;
+    radiusScale = null;
+    fontScale = null;
     allNodes = [];
     curLinksData = [];
     curNodesData = [];
@@ -271,7 +273,21 @@
     focusedConceptInOrderAsListofList = [];
     force = d3.layout.force();
     network = function(selection, data) {
-      var vis, zoom;
+      var maxNumDocuments, n, vis, zoom;
+      maxNumDocuments = ((function() {
+        var j, len, ref, results;
+        ref = data.lattice;
+        results = [];
+        for (j = 0, len = ref.length; j < len; j++) {
+          n = ref[j];
+          results.push(n.extensionNames.length);
+        }
+        return results;
+      })()).reduce(function(x, y) {
+        return Math.max(x, y);
+      });
+      radiusScale = d3.scale.log().range([minRadius, maxRadius]).domain([1, maxNumDocuments]);
+      fontScale = d3.scale.sqrt().range([minFontSize, maxFontSize]).domain([1, maxNumDocuments]);
       setupData(data);
       vis = d3.select(selection).append("svg").attr("width", width).attr("height", height);
       nodesG = vis.append("g").attr("id", "nodes");
@@ -300,8 +316,6 @@
       updateNodes();
       force.start();
       if (curConcept) {
-        console.log('xx');
-        console.log(focusedConceptInOrderAsListofList);
         focusedConceptFlatList = getCurrentConceptTerms(focusedConceptInOrderAsListofList);
         printResultList(curConcept, documents);
         $('#search-bar input').val(focusedConceptFlatList.join(' '));
@@ -409,11 +423,11 @@
         return d.radius;
       }).style("stroke", '#dfdfdf').style("stroke-width", 1).style("fill", "white");
       node.append("text").text(formatLabelText).attr("class", "nodeLabel").style("font-size", function(x) {
-        return (fontScale(x.extensionNames.length)) + "px";
-      });
+        return (fontScale(x.extensionNames.length)) + "em";
+      }).attr("dy", "0.25em");
       node.append("text").text(function(x) {
         return x.extensionNames.length;
-      }).attr("class", "count").attr("dy", "1.1em");
+      }).attr("class", "count").style("font-size", "2em").attr("dy", "1.5em").style("display", "none");
       node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", clickFunction);
       return node.exit().remove();
     };
@@ -462,16 +476,12 @@
       return nodesG.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     };
     showDetails = function(d, i) {
-      d3.select(this).select('circle').style("stroke-width", 2.0).attr("r", function(d) {
-        return String(d.radius + collisionPadding);
-      });
-      return d3.select(this).select('text').style("font-weight", "bold");
+      d3.select(this).select('circle').style("stroke-width", 2.0);
+      return d3.select(this).select('.count').style("display", "inline");
     };
     hideDetails = function(d, i) {
-      node.select('circle').style("stroke-width", 1.0).attr("r", function(d) {
-        return String(d.radius);
-      });
-      return node.select('text').style("font-weight", "normal");
+      d3.select(this).select('circle').style("stroke-width", 1.0);
+      return d3.select(this).select('.count').style("display", "none");
     };
     clickFunction = function(d, i) {
       var x;

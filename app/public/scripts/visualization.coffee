@@ -8,11 +8,13 @@
 	minCollisionRadius = 20
 
 	minRadius = 10
-	maxRadius = 40
+	maxRadius = 100
 
-	radiusScale = d3.scale.sqrt().range([minRadius, maxRadius]).domain([0,100])
+	minFontSize = 1
+	maxFontSize = 5
 
-	fontScale = d3.scale.linear().range([8, 16]).domain([0, 100])
+	radiusScale = null
+	fontScale = null
 
 	allNodes = []
 
@@ -35,6 +37,12 @@
 	force = d3.layout.force()
 
 	network = (selection, data) ->
+
+		# set up scales based on lattice size
+		maxNumDocuments = (n.extensionNames.length for n in data.lattice).reduce (x, y) -> Math.max x, y
+		radiusScale = d3.scale.log().range([minRadius, maxRadius]).domain([1,maxNumDocuments])
+		fontScale = d3.scale.sqrt().range([minFontSize, maxFontSize]).domain([1, maxNumDocuments])
+
 		setupData(data)
 
 		vis = d3.select(selection).append("svg")
@@ -71,9 +79,6 @@
 
 		# if already something set - no start
 		if curConcept
-
-			console.log 'xx'
-			console.log focusedConceptInOrderAsListofList
 
 			focusedConceptFlatList = getCurrentConceptTerms focusedConceptInOrderAsListofList
 
@@ -191,13 +196,16 @@
 		node.append "text"
 			.text(formatLabelText)
 			.attr("class", "nodeLabel")
-			.style("font-size", (x) ->"#{fontScale(x.extensionNames.length)}px")
+			.style("font-size", (x) ->"#{fontScale(x.extensionNames.length)}em")
+			.attr("dy", "0.25em")
 			# .attr("text-decoration", strikeThru)
 
 		node.append "text"
 			.text((x) -> x.extensionNames.length)
 			.attr("class", "count")
-			.attr("dy", "1.1em")
+			.style("font-size", "2em")
+			.attr("dy", "1.5em")
+			.style("display", "none")
 
 		node.on("mouseover", showDetails)
 			.on("mouseout", hideDetails)
@@ -264,20 +272,13 @@
 		nodesG.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")")
 	
 	showDetails = (d, i) ->
-		d3.select(this).select('circle')
-			.style("stroke-width", 2.0)
-			.attr("r", (d) -> String(d.radius + collisionPadding))
+		d3.select(this).select('circle').style("stroke-width", 2.0)
+		d3.select(this).select('.count').style("display", "inline")
 
-		d3.select(this).select('text').style("font-weight", "bold")
-			# .style("font-size", "2em")
 
 	hideDetails = (d, i) ->
-		node.select('circle')
-			.style("stroke-width", 1.0)
-			.attr("r", (d) -> String(d.radius))
-
-		node.select('text').style("font-weight", "normal")
-			# .style("font-size", "1em")
+		d3.select(this).select('circle').style("stroke-width", 1.0)
+		d3.select(this).select('.count').style("display", "none")
 	
 	clickFunction = (d, i) ->
 
