@@ -5,6 +5,9 @@ body {
   text-anchor: middle;
   cursor: pointer; }
 
+a {
+  cursor: pointer; }
+
 .count {
   font-size: 0.75em; }
 

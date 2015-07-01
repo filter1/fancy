@@ -7,6 +7,11 @@ body {
   cursor: pointer;
 }
 
+// Because we have no href specified, it doesn't show them as 'links'
+a {
+  cursor: pointer;
+}
+
 .count {
 	font-size: 0.75em;
 }

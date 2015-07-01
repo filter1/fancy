@@ -54,7 +54,7 @@ Historyitem = sequelize.define 'historyitem', {
 	}
 
 Linkclick = sequelize.define 'linkclick', {
-		document: { type: Sequelize.STRING }
+		URL: { type: Sequelize.STRING }
 	}
 
 User.hasMany Like
@@ -154,6 +154,15 @@ app.get('/likes', isAuthenticatedForData, (req, res) ->
 				res.render 'likes', {documents: documents, userName: user.get('name')}
 			.catch ->
 				res.end()
+	)
+
+app.post('/linkclick', isAuthenticatedForData, (req, res) ->
+		user = res.locals.user
+		user.createLinkclick { url: req.body.url }
+			.then ->
+				console.log 'new linkclick saved'
+				res.end()
+			res.end()
 	)
 
 ##########

@@ -1,8 +1,27 @@
 (function() {
-  var KEY_HISTORY, KEY_UNSYNCED, getHistoryDataFromSessionStorage, getHistoryFromServer, printHistory, printResultList, printToHistoryListItem, saveNavigationActionToSessionStorage, saveNavigationToHistory, sendToServer, sendUnsyncedToServer, setHistoryDataToSessionStorage, userLoggedIn;
+  var KEY_HISTORY, KEY_UNSYNCED, Network, getHistoryDataFromSessionStorage, getHistoryFromServer, printBreadcrumb, printHistory, printResultList, printToHistoryListItem, saveNavigationActionToSessionStorage, saveNavigationToHistory, sendToServer, sendUnsyncedToServer, setHistoryDataToSessionStorage, userLoggedIn;
+
+  printBreadcrumb = function(focusedConceptInOrderAsListofList) {
+    var br, concept, conceptString, i, j, lastIndex, len, ref, terms;
+    br = $('.breadcrumb');
+    br.text('');
+    br.append("<li><a terms='[[]]'><i class='glyphicon glyphicon-home'/></a></li>");
+    lastIndex = focusedConceptInOrderAsListofList.length - 1;
+    if (lastIndex) {
+      ref = focusedConceptInOrderAsListofList.slice(0, +(lastIndex - 1) + 1 || 9e9);
+      for (i = j = 0, len = ref.length; j < len; i = ++j) {
+        concept = ref[i];
+        terms = JSON.stringify(focusedConceptInOrderAsListofList.slice(0, +i + 1 || 9e9));
+        conceptString = concept.join(' ');
+        br.append("<li><a terms='" + terms + "'>" + conceptString + "</a></li>");
+      }
+    }
+    conceptString = focusedConceptInOrderAsListofList[lastIndex].join(' ');
+    return br.append("<li>" + conceptString + "</li>");
+  };
 
   userLoggedIn = function() {
-    return $('#userName').length > 0;
+    return $('#logout').length > 0;
   };
 
   $(function() {
@@ -169,7 +188,7 @@
         }
         return results;
       })()).join(' / ');
-      return $('#history .list-group').prepend("<a href='#' class='list-group-item'> <span class='historyQuery' terms=" + data + ">" + terms + "</span></a>");
+      return $('#history .list-group').prepend("<a class='list-group-item'> <span class='historyQuery' terms=" + data + ">" + terms + "</span></a>");
     }
   };
 
@@ -225,8 +244,16 @@
     });
   };
 
+  this.sendLinkclickToServer = function(url) {
+    if (userLoggedIn()) {
+      return $.post('/linkclick', {
+        url: url
+      });
+    }
+  };
+
   printResultList = function(curConcept, documents) {
-    var button, details, doc, docId, j, len, nDocs, resultingDocuments, results, url;
+    var button, details, doc, docId, j, la, len, nDocs, reg, resultingDocuments, results;
     details = $('#details .list-group').text('');
     resultingDocuments = curConcept.extensionNames;
     nDocs = resultingDocuments.length;
@@ -237,9 +264,10 @@
       for (j = 0, len = resultingDocuments.length; j < len; j++) {
         docId = resultingDocuments[j];
         doc = documents.get(docId);
-        url = "http://www.mcu.es/ccbae/es/consulta/resultados_busqueda.cmd?tipo_busqueda=mapas_planos_dibujos&posicion=1&forma=ficha&id=" + docId;
-        button = "<button class='btn pull-right' data-toggle='tooltip' data-placement='left' title='Bookmark this document. Requieres login.' onclick='sendLikeToServer(\"" + url + "\" ,\"" + doc.title + "\", this);'> <span class='glyphicon glyphicon-heart'></span></button>";
-        results.push(details.append("<li class='list-group-item'><a href='" + url + "' target='_blank'><h4 class='list-group-item-heading'>" + doc.title + "</h4></a><p class='list-group-item-text'>" + doc.content + "</p>" + button + "<div class='clearfix'/></li>"));
+        button = "<button class='btn pull-right' onclick='sendLikeToServer(\"" + doc.url + "\" ,\"" + doc.title + "\", this);'> <span class='glyphicon glyphicon-heart'></span></button>";
+        reg = curConcept.intensionNames.join('|');
+        la = doc.content.replace(new RegExp(reg, "gi"), '<strong>$&</strong>');
+        results.push(details.append("<li class='list-group-item'><a onclick='sendLinkclickToServer(\"" + doc.url + "\"); return true;' href='" + doc.url + "' target='_blank'><h4 class='list-group-item-heading'>" + doc.title + "</h4></a><p class='list-group-item-text'>" + la + "</p>" + button + "<div class='clearfix'/></li>"));
       }
       return results;
     } else {
@@ -247,8 +275,8 @@
     }
   };
 
-  this.Network = function() {
-    var allNodes, clickFunction, collide, collisionPadding, conceptToId, createLabels, curConcept, curLinksData, curNodesData, documents, filterNodes, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxFontSize, maxRadius, minCollisionRadius, minFontSize, minRadius, network, node, nodesG, radiusScale, setupData, showDetails, update, updateNodes, whatIsInXButNotInY, width, zoomed;
+  Network = function() {
+    var allNodes, clickFunction, collide, collisionPadding, conceptToId, createLabels, curLinksData, curNodesData, documents, filterNodes, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxFontSize, maxRadius, minCollisionRadius, minFontSize, minRadius, network, node, nodesG, radiusScale, setupData, showDetails, update, updateNodes, whatIsInXButNotInY, width, zoomed;
     width = parseInt(d3.select("#vis").style("width"));
     height = parseInt(d3.select("#vis").style("height"));
     jitter = 0.5;
@@ -269,8 +297,7 @@
     documents = null;
     nodesG = null;
     node = null;
-    curConcept = null;
-    focusedConceptInOrderAsListofList = [];
+    focusedConceptInOrderAsListofList = [[]];
     force = d3.layout.force();
     network = function(selection, data) {
       var maxNumDocuments, n, vis, zoom;
@@ -297,51 +324,36 @@
       return update();
     };
     update = function() {
-      var br, c, concept, conceptProccessed, conceptString, focusedConceptFlatList, i, j, lastIndex, len, ref, terms;
-      if (focusedConceptInOrderAsListofList.length > 0) {
-        terms = getCurrentConceptTerms(focusedConceptInOrderAsListofList);
-        conceptProccessed = ((function() {
-          var j, len, results;
-          results = [];
-          for (j = 0, len = terms.length; j < len; j++) {
-            c = terms[j];
-            results.push(c.toLowerCase());
-          }
-          return results;
-        })()).sort();
-        curConcept = conceptToId.get(conceptProccessed);
-      }
-      curNodesData = filterNodes(allNodes);
+      var c, conceptProccessed, curConcept, focusedConceptFlatList, terms;
+      terms = getCurrentConceptTerms(focusedConceptInOrderAsListofList);
+      conceptProccessed = ((function() {
+        var j, len, results;
+        results = [];
+        for (j = 0, len = terms.length; j < len; j++) {
+          c = terms[j];
+          results.push(c.toLowerCase());
+        }
+        return results;
+      })()).sort();
+      curConcept = conceptToId.get(conceptProccessed);
+      curNodesData = filterNodes(allNodes, curConcept);
       force.nodes(curNodesData);
       updateNodes();
       force.start();
-      if (curConcept) {
-        focusedConceptFlatList = getCurrentConceptTerms(focusedConceptInOrderAsListofList);
-        printResultList(curConcept, documents);
-        $('#search-bar input').val(focusedConceptFlatList.join(' '));
-        br = $('.breadcrumb');
-        br.text('');
-        br.append("<li><a href='#' terms='[[]]'><i class='glyphicon glyphicon-home'/></a></li>");
-        lastIndex = focusedConceptInOrderAsListofList.length - 1;
-        if (lastIndex) {
-          ref = focusedConceptInOrderAsListofList.slice(0, +(lastIndex - 1) + 1 || 9e9);
-          for (i = j = 0, len = ref.length; j < len; i = ++j) {
-            concept = ref[i];
-            terms = JSON.stringify(focusedConceptInOrderAsListofList.slice(0, +i + 1 || 9e9));
-            conceptString = concept.join(' ');
-            console.log(conceptString);
-            br.append("<li><a href='#' terms='" + terms + "'>" + conceptString + "</a></li>");
-          }
-        }
-        conceptString = focusedConceptInOrderAsListofList[lastIndex].join(' ');
-        return br.append("<li>" + conceptString + "</li>");
-      }
+      focusedConceptFlatList = getCurrentConceptTerms(focusedConceptInOrderAsListofList);
+      printResultList(curConcept, documents);
+      $('#search-bar input').val(focusedConceptFlatList.join(' '));
+      return printBreadcrumb(focusedConceptInOrderAsListofList);
     };
     network.navigationClick = function(newConcept) {
       var newConceptTerms;
       force.stop();
       newConceptTerms = newConcept.split(',');
-      focusedConceptInOrderAsListofList.push(newConceptTerms);
+      if (focusedConceptInOrderAsListofList[0].length === 0) {
+        focusedConceptInOrderAsListofList = [newConceptTerms];
+      } else {
+        focusedConceptInOrderAsListofList.push(newConceptTerms);
+      }
       saveNavigationToHistory(focusedConceptInOrderAsListofList, 'click');
       return update();
     };
@@ -366,7 +378,7 @@
         results = [];
         for (j = 0, len = ref.length; j < len; j++) {
           w = ref[j];
-          results.push([w]);
+          results.push([w.toLowerCase()]);
         }
         return results;
       })();
@@ -386,24 +398,32 @@
         return x.id;
       });
       conceptToId = d3.map(nodes, function(x) {
-        return x.intensionNames.sort();
+        var c;
+        return ((function() {
+          var j, len, ref, results;
+          ref = x.intensionNames;
+          results = [];
+          for (j = 0, len = ref.length; j < len; j++) {
+            c = ref[j];
+            results.push(c.toLowerCase());
+          }
+          return results;
+        })()).sort();
       });
       documents = d3.map(data.objects, function(x) {
         return x.id;
       });
       return allNodes = nodes;
     };
-    filterNodes = function(allNodes) {
+    filterNodes = function(allNodes, curConcept) {
       var filterdNodes;
       filterdNodes = [];
-      if (curConcept) {
-        filterdNodes = filterdNodes.concat(curConcept.childrenNames.map(function(x) {
-          return idToConcept.get(x);
-        }));
-        filterdNodes = filterdNodes.filter(function(x) {
-          return x.extensionNames.length > 0;
-        });
-      }
+      filterdNodes = filterdNodes.concat(curConcept.childrenNames.map(function(x) {
+        return idToConcept.get(x);
+      }));
+      filterdNodes = filterdNodes.filter(function(x) {
+        return x.extensionNames.length > 0;
+      });
       return filterdNodes;
     };
     createLabels = function(x, y) {
@@ -411,7 +431,7 @@
     };
     formatLabelText = function(node) {
       var text;
-      return text = createLabels(node.intensionNames, curConcept.intensionNames);
+      return text = createLabels(node.intensionNames, getCurrentConceptTerms(focusedConceptInOrderAsListofList));
     };
     updateNodes = function() {
       node = nodesG.selectAll("g.node").data(curNodesData, function(d) {
@@ -486,9 +506,6 @@
     clickFunction = function(d, i) {
       var x;
       x = d3.select(this).select('text').text();
-      console.log(x);
-      console.log(d);
-      console.log(i);
       return network.navigationClick(x);
     };
     whatIsInXButNotInY = function(x, y) {
@@ -497,7 +514,6 @@
       });
     };
     this.getCurrentConceptTerms = function(focusedConceptInOrderAsListofList) {
-      console.log(focusedConceptInOrderAsListofList);
       return focusedConceptInOrderAsListofList.reduce(function(a, b) {
         return a.concat(b);
       });

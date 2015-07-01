@@ -23,10 +23,9 @@ html(lang="en")
 								a(href='/login') Login
 						if userName
 							li
-								a(href='/likes') #{userName}'s Bookmarks
+								a(href='/likes') Your Bookmarks
 							li
-								a(href='/logout') Logout
-
+								a#logout(href='/logout') Logout
 
 				div
 					if alert

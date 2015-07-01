@@ -1,5 +1,5 @@
 
-@Network = () ->
+Network = () ->
 	width = parseInt(d3.select("#vis").style("width"))
 	height = parseInt(d3.select("#vis").style("height"))
 
@@ -31,8 +31,7 @@
 	node = null
 
 	# initialize without any concept
-	curConcept = null
-	focusedConceptInOrderAsListofList = []
+	focusedConceptInOrderAsListofList = [[]] # init as empty
 
 	force = d3.layout.force()
 
@@ -64,48 +63,33 @@
 
 	update = () ->
 
-		if focusedConceptInOrderAsListofList.length > 0
-			terms = getCurrentConceptTerms focusedConceptInOrderAsListofList
-			# tranfrom to internal representation
-			conceptProccessed = (c.toLowerCase() for c in terms).sort()
-			curConcept = conceptToId.get conceptProccessed
+		# if focusedConceptInOrderAsListofList.length > 0
+		terms = getCurrentConceptTerms focusedConceptInOrderAsListofList
 
-		curNodesData = filterNodes(allNodes)
+		# tranfrom to internal representation
+		conceptProccessed = (c.toLowerCase() for c in terms).sort()
+		curConcept = conceptToId.get conceptProccessed
+		curNodesData = filterNodes(allNodes, curConcept)
 		
 		force.nodes(curNodesData)
 		updateNodes()
 
 		force.start()
 
-		# if already something set - no start
-		if curConcept
+		focusedConceptFlatList = getCurrentConceptTerms focusedConceptInOrderAsListofList
 
-			focusedConceptFlatList = getCurrentConceptTerms focusedConceptInOrderAsListofList
-
-			printResultList(curConcept, documents)
-			$('#search-bar input').val focusedConceptFlatList.join ' '
-
-			br = $('.breadcrumb')
-			br.text ''
-			br.append "<li><a href='#' terms='[[]]'><i class='glyphicon glyphicon-home'/></a></li>"
-
-			lastIndex = focusedConceptInOrderAsListofList.length - 1
-			if lastIndex
-				for concept, i in focusedConceptInOrderAsListofList[0..lastIndex - 1]
-					terms = JSON.stringify(focusedConceptInOrderAsListofList[0..i])
-					conceptString = concept.join ' '
-
-					console.log conceptString
-
-					br.append "<li><a href='#' terms='#{terms}'>#{conceptString}</a></li>"
-			conceptString = focusedConceptInOrderAsListofList[lastIndex].join ' '
-			br.append "<li>#{conceptString}</li>"
+		printResultList curConcept, documents
+		$('#search-bar input').val focusedConceptFlatList.join ' '
+		printBreadcrumb(focusedConceptInOrderAsListofList)
 
 	network.navigationClick = (newConcept) ->
 		force.stop()
 
 		newConceptTerms = newConcept.split ','
-		focusedConceptInOrderAsListofList.push newConceptTerms
+		if focusedConceptInOrderAsListofList[0].length == 0 # if started
+			focusedConceptInOrderAsListofList = [newConceptTerms]
+		else
+			focusedConceptInOrderAsListofList.push newConceptTerms
 		saveNavigationToHistory(focusedConceptInOrderAsListofList, 'click')
 
 		update()
@@ -129,7 +113,10 @@
 	network.navigationSearch = (query) ->
 		force.stop()
 
-		focusedConceptInOrderAsListofList = ([w] for w in query.split(' ')) #todo
+		focusedConceptInOrderAsListofList = ([w.toLowerCase()] for w in query.split(' ')) #todo
+
+		# no hit?
+
 		saveNavigationToHistory(focusedConceptInOrderAsListofList, 'search')
 
 		update()
@@ -143,21 +130,21 @@
 		nodes.forEach (d,i) -> d.forceR = Math.max(minCollisionRadius, radiusScale(d.extensionNames.length))
 
 		idToConcept = d3.map(nodes, (x) -> x.id)
-		conceptToId = d3.map(nodes, (x) -> x.intensionNames.sort())
+		conceptToId = d3.map(nodes, (x) -> (c.toLowerCase() for c in x.intensionNames).sort())
 		documents = d3.map(data.objects, (x) -> x.id)
 
 		allNodes = nodes
 
-	filterNodes = (allNodes) ->
+	filterNodes = (allNodes, curConcept) ->
 		filterdNodes = []
-		if curConcept
+		# if curConcept
 			# filterdNodes.push(curConcept)
 			# filterdNodes = filterdNodes.concat curConcept.parentNames.map (x) -> idToConcept.get x
-			filterdNodes = filterdNodes.concat curConcept.childrenNames.map (x) -> idToConcept.get x
+		filterdNodes = filterdNodes.concat curConcept.childrenNames.map (x) -> idToConcept.get x
 
-			# filter out last node which breaks the interface :/
-			# should not be included in the first place...
-			filterdNodes = filterdNodes.filter (x) -> (x.extensionNames.length > 0)
+		# filter out last node which breaks the interface :/
+		# should not be included in the first place...
+		filterdNodes = filterdNodes.filter (x) -> (x.extensionNames.length > 0)
 			
 		filterdNodes
 
@@ -165,7 +152,7 @@
 		whatIsInXButNotInY(x, y)
 
 	formatLabelText = (node) ->
-		text = createLabels(node.intensionNames, curConcept.intensionNames)
+		text = createLabels(node.intensionNames, getCurrentConceptTerms focusedConceptInOrderAsListofList)
 
 	# strikeThru = (d) ->
 	# 	if d.intensionNames.length < curConcept.intensionNames.length
@@ -281,11 +268,7 @@
 		d3.select(this).select('.count').style("display", "none")
 	
 	clickFunction = (d, i) ->
-
 		x = d3.select(this).select('text').text()
-		console.log x
-		console.log d
-		console.log i
 		network.navigationClick(x) # how to get text?
 
 	# filter some stuff out
@@ -294,7 +277,7 @@
 
 	# flatten list
 	@getCurrentConceptTerms = (focusedConceptInOrderAsListofList) ->
-		console.log focusedConceptInOrderAsListofList
+		# console.log focusedConceptInOrderAsListofList
 		return focusedConceptInOrderAsListofList.reduce (a, b) -> a.concat b
 
 	network

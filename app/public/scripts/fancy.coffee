@@ -1,6 +1,6 @@
 # this is a hack
 userLoggedIn = ->
-	return $('#userName').length > 0
+	return $('#logout').length > 0
 
 $ ->
 	# manage history

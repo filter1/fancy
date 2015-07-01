@@ -71,7 +71,7 @@
   });
 
   Linkclick = sequelize.define('linkclick', {
-    document: {
+    URL: {
       type: Sequelize.STRING
     }
   });
@@ -226,6 +226,18 @@
     })["catch"](function() {
       return res.end();
     });
+  });
+
+  app.post('/linkclick', isAuthenticatedForData, function(req, res) {
+    var user;
+    user = res.locals.user;
+    user.createLinkclick({
+      url: req.body.url
+    }).then(function() {
+      console.log('new linkclick saved');
+      return res.end();
+    });
+    return res.end();
   });
 
   port = config.get("port");

@@ -51,7 +51,7 @@ printToHistoryListItem = (historyItem) ->
 
 		terms = (w.join(' ') for w in items).join ' / '
 
-		$('#history .list-group').prepend "<a href='#' class='list-group-item'> <span class='historyQuery' terms=#{data}>#{terms}</span></a>"
+		$('#history .list-group').prepend "<a class='list-group-item'> <span class='historyQuery' terms=#{data}>#{terms}</span></a>"
 
 # send one 'navigation action' to the server
 sendToServer = (historyItem) ->
