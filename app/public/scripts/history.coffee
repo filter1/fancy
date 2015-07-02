@@ -76,3 +76,15 @@ getHistoryFromServer = ->
 
 		setHistoryDataToSessionStorage result, KEY_HISTORY
 		printHistory()
+
+manageHistory = ->
+	if Modernizr.sessionstorage
+		if userLoggedIn()
+			if sessionStorage.getItem KEY_UNSYNCED
+				# calls other functions here
+				sendUnsyncedToServer()
+			else
+				# calls other functions here
+				getHistoryFromServer()
+		else
+			printHistory()

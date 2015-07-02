@@ -38,7 +38,7 @@
 
   sequelize.authenticate().done(function(err) {
     if (err) {
-      return console.log("connection failed:" + err);
+      return console.log("connection failed: " + err);
     } else {
       return console.log('connection success');
     }
@@ -88,20 +88,11 @@
 
   Historyitem.belongsTo(User);
 
-  if (config.has("recreateDb")) {
-    sequelize.sync({
-      force: true
-    }).then(function() {
-      User.create({
-        name: "Johannes"
-      });
-      return console.log('successfully created all tables');
-    });
-  } else {
-    sequelize.sync().then(function() {
-      return console.log('synced databases');
-    });
-  }
+  sequelize.sync({
+    force: false
+  }).then(function() {
+    return console.log('successfully synced models and tables');
+  });
 
   app.get('/', function(req, res) {
     return res.render('index', {

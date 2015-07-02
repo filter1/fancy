@@ -1,15 +1,8 @@
 body {
   padding: 0 1em; }
 
-.node {
-  text-anchor: middle;
-  cursor: pointer; }
-
 a {
   cursor: pointer; }
-
-.count {
-  font-size: 0.75em; }
 
 #search-bar {
   margin-top: 1em;
@@ -23,7 +16,8 @@ a {
 
 #accordion {
   overflow: auto;
-  height: 100%; }
+  height: 100%;
+  margin: 0; }
 
 .breadcrumb {
   margin-top: 1em;
@@ -32,8 +26,13 @@ a {
 .alert {
   text-align: center; }
 
-#accordion {
-  margin: 0; }
+.node {
+  text-anchor: middle;
+  cursor: pointer; }
+
+.countLabel {
+  display: none;
+  font-size: 2em; }
 
 /*
  * typehead.js-bootstrap3.less

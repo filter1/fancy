@@ -2,18 +2,9 @@ body {
 	padding: 0 1em;
 }
 
-.node {
-	text-anchor: middle;
-  cursor: pointer;
-}
-
 // Because we have no href specified, it doesn't show them as 'links'
 a {
   cursor: pointer;
-}
-
-.count {
-	font-size: 0.75em;
 }
 
 #search-bar {
@@ -32,6 +23,7 @@ a {
 #accordion {
 	overflow: auto;
 	height: 100%;
+  margin: 0;
 }
 
 .breadcrumb {
@@ -43,12 +35,20 @@ a {
 	text-align: center;
 }
 
-#accordion {
-	margin: 0;
+// Styling the Bubble Cloud
+
+.node {
+  text-anchor: middle;
+  cursor: pointer;
 }
 
+.countLabel {
+  display: none;
+  font-size: 2em;
+}
 
-// FIX THE TYPEAHEAD Stuff
+// This is fixing some problems with the typeahead in combination with Bootstrap
+// This is not my work and taken from the github url below
 
 /*
  * typehead.js-bootstrap3.less

@@ -33,7 +33,7 @@ sequelize = new Sequelize( config.get("dbName"), config.get("dbUser"), config.ge
 
 sequelize.authenticate().done( (err) ->
 	if err
-		console.log "connection failed:#{err}"
+		console.log "connection failed: #{err}"
 	else
 		console.log 'connection success'
 )
@@ -65,13 +65,9 @@ Like.belongsTo User
 Linkclick.belongsTo User
 Historyitem.belongsTo User
 
-if config.has "recreateDb"
-	sequelize.sync({force: true}).then( ->
-			User.create({name: "Johannes"})
-			console.log 'successfully created all tables'
+sequelize.sync({force: false}).then( ->
+			console.log 'successfully synced models and tables'
 		)
-else
-	sequelize.sync().then( -> console.log 'synced databases' )
 
 
 ##########

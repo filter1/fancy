@@ -1,5 +1,5 @@
 (function() {
-  var KEY_HISTORY, KEY_UNSYNCED, Network, getHistoryDataFromSessionStorage, getHistoryFromServer, printBreadcrumb, printHistory, printResultList, printToHistoryListItem, saveNavigationActionToSessionStorage, saveNavigationToHistory, sendToServer, sendUnsyncedToServer, setHistoryDataToSessionStorage, userLoggedIn;
+  var KEY_HISTORY, KEY_UNSYNCED, Network, getHistoryDataFromSessionStorage, getHistoryFromServer, manageHistory, printBreadcrumb, printHistory, printResultList, printToHistoryListItem, saveNavigationActionToSessionStorage, saveNavigationToHistory, sendToServer, sendUnsyncedToServer, setHistoryDataToSessionStorage;
 
   printBreadcrumb = function(focusedConceptInOrderAsListofList) {
     var br, concept, conceptString, i, j, lastIndex, len, ref, terms;
@@ -20,30 +20,16 @@
     return br.append("<li>" + conceptString + "</li>");
   };
 
-  userLoggedIn = function() {
-    return $('#logout').length > 0;
-  };
-
   $(function() {
     var adaptHeight, myNetwork;
-    if (Modernizr.sessionstorage) {
-      if (userLoggedIn()) {
-        if (sessionStorage.getItem(KEY_UNSYNCED)) {
-          sendUnsyncedToServer();
-        } else {
-          getHistoryFromServer();
-        }
-      } else {
-        printHistory();
-      }
-    }
+    manageHistory();
     adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('header').outerHeight(true) - 10;
     $('.col-md-6, #viz').height(adaptHeight);
     myNetwork = Network();
     d3.json("data/lattice.json", function(json) {
       var searchSubmit;
       $('#vis').empty();
-      myNetwork("#vis", json);
+      myNetwork(json);
       searchSubmit = function() {
         var query;
         query = $('#searchText').val();
@@ -107,6 +93,16 @@
       });
     });
   });
+
+  this.getCurrentConceptTerms = function(focusedConceptInOrderAsListofList) {
+    return focusedConceptInOrderAsListofList.reduce(function(a, b) {
+      return a.concat(b);
+    });
+  };
+
+  this.userLoggedIn = function() {
+    return $('#logout').length > 0;
+  };
 
   KEY_HISTORY = "history";
 
@@ -233,6 +229,20 @@
     });
   };
 
+  manageHistory = function() {
+    if (Modernizr.sessionstorage) {
+      if (userLoggedIn()) {
+        if (sessionStorage.getItem(KEY_UNSYNCED)) {
+          return sendUnsyncedToServer();
+        } else {
+          return getHistoryFromServer();
+        }
+      } else {
+        return printHistory();
+      }
+    }
+  };
+
   this.sendLikeToServer = function(url, title, element) {
     return $.post('/likes', {
       documentURL: url,
@@ -277,9 +287,10 @@
   };
 
   Network = function() {
-    var allNodes, clickFunction, collide, collisionPadding, conceptToId, createLabels, curLinksData, curNodesData, documents, filterNodes, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, linkedByIndex, maxFontSize, maxRadius, minCollisionRadius, minFontSize, minRadius, network, node, nodesG, radiusScale, setupData, showDetails, update, updateNodes, whatIsInXButNotInY, width, zoomed;
-    width = parseInt(d3.select("#vis").style("width"));
-    height = parseInt(d3.select("#vis").style("height"));
+    var clickFunction, collide, collisionPadding, conceptToId, curNodesData, documents, filterNodes, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, maxFontSize, maxRadius, minCollisionRadius, minFontSize, minRadius, network, node, nodesG, radiusScale, selection, setupData, showDetails, update, updateNodes, width, zoomed;
+    selection = "#vis";
+    width = parseInt(d3.select(selection).style("width"));
+    height = parseInt(d3.select(selection).style("height"));
     jitter = 0.5;
     collisionPadding = 10;
     minCollisionRadius = 20;
@@ -289,10 +300,7 @@
     maxFontSize = 5;
     radiusScale = null;
     fontScale = null;
-    allNodes = [];
-    curLinksData = [];
     curNodesData = [];
-    linkedByIndex = {};
     conceptToId = null;
     idToConcept = null;
     documents = null;
@@ -300,7 +308,7 @@
     node = null;
     focusedConceptInOrderAsListofList = [[]];
     force = d3.layout.force();
-    network = function(selection, data) {
+    network = function(data) {
       var maxNumDocuments, n, vis, zoom;
       maxNumDocuments = ((function() {
         var j, len, ref, results;
@@ -337,7 +345,7 @@
         return results;
       })()).sort();
       curConcept = conceptToId.get(conceptProccessed);
-      curNodesData = filterNodes(allNodes, curConcept);
+      curNodesData = filterNodes(curConcept);
       force.nodes(curNodesData);
       updateNodes();
       force.start();
@@ -411,28 +419,35 @@
           return results;
         })()).sort();
       });
-      documents = d3.map(data.objects, function(x) {
+      return documents = d3.map(data.objects, function(x) {
         return x.id;
       });
-      return allNodes = nodes;
     };
-    filterNodes = function(allNodes, curConcept) {
+    filterNodes = function(curConcept) {
       var filterdNodes;
-      filterdNodes = [];
-      filterdNodes = filterdNodes.concat(curConcept.childrenNames.map(function(x) {
+      filterdNodes = curConcept.childrenNames.map(function(x) {
         return idToConcept.get(x);
-      }));
-      filterdNodes = filterdNodes.filter(function(x) {
+      });
+      return filterdNodes = filterdNodes.filter(function(x) {
         return x.extensionNames.length > 0;
       });
-      return filterdNodes;
-    };
-    createLabels = function(x, y) {
-      return whatIsInXButNotInY(x, y);
     };
     formatLabelText = function(node) {
-      var text;
-      return text = createLabels(node.intensionNames, getCurrentConceptTerms(focusedConceptInOrderAsListofList));
+      var focusedNodeText, lowerdNodeText, w;
+      lowerdNodeText = (function() {
+        var j, len, ref, results;
+        ref = node.intensionNames;
+        results = [];
+        for (j = 0, len = ref.length; j < len; j++) {
+          w = ref[j];
+          results.push(w.toLowerCase());
+        }
+        return results;
+      })();
+      focusedNodeText = getCurrentConceptTerms(focusedConceptInOrderAsListofList);
+      return lowerdNodeText.filter(function(x) {
+        return focusedNodeText.indexOf(x) < 0;
+      });
     };
     updateNodes = function() {
       node = nodesG.selectAll("g.node").data(curNodesData, function(d) {
@@ -448,9 +463,22 @@
       }).attr("dy", "0.25em");
       node.append("text").text(function(x) {
         return x.extensionNames.length;
-      }).attr("class", "count").style("font-size", "2em").attr("dy", "1.5em").style("display", "none");
+      }).attr("class", "countLabel").attr("dy", "1.5em");
       node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", clickFunction);
       return node.exit().remove();
+    };
+    showDetails = function(d, i) {
+      d3.select(this).select('circle').style("stroke-width", 4.0);
+      return d3.select(this).select('.countLabel').style("display", "inline");
+    };
+    hideDetails = function(d, i) {
+      d3.select(this).select('circle').style("stroke-width", 2.0);
+      return d3.select(this).select('.countLabel').style("display", "none");
+    };
+    clickFunction = function(d, i) {
+      var x;
+      x = d3.select(this).select('text').text();
+      return network.navigationClick(x);
     };
     forceTick = function(e) {
       var dampenAlpha;
@@ -495,29 +523,6 @@
     };
     zoomed = function() {
       return nodesG.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
-    };
-    showDetails = function(d, i) {
-      d3.select(this).select('circle').style("stroke-width", 4.0);
-      return d3.select(this).select('.count').style("display", "inline");
-    };
-    hideDetails = function(d, i) {
-      d3.select(this).select('circle').style("stroke-width", 2.0);
-      return d3.select(this).select('.count').style("display", "none");
-    };
-    clickFunction = function(d, i) {
-      var x;
-      x = d3.select(this).select('text').text();
-      return network.navigationClick(x);
-    };
-    whatIsInXButNotInY = function(x, y) {
-      return x.filter(function(z) {
-        return y.indexOf(z) < 0;
-      });
-    };
-    this.getCurrentConceptTerms = function(focusedConceptInOrderAsListofList) {
-      return focusedConceptInOrderAsListofList.reduce(function(a, b) {
-        return a.concat(b);
-      });
     };
     return network;
   };

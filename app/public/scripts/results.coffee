@@ -22,7 +22,7 @@ printResultList = (curConcept, documents) ->
 	if nDocs > 0
 		resultingDocuments = resultingDocuments[..100]
 		for docId in resultingDocuments
-			doc = documents.get(docId)
+			doc = documents.get docId
 
 			button = "<button class='btn pull-right' onclick='sendLikeToServer(\"#{doc.url}\" ,\"#{doc.title}\", this);'>
 	    <span class='glyphicon glyphicon-heart'></span></button>"
