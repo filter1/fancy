@@ -177,7 +177,7 @@ Network = () ->
 		node.append "circle"
 			.attr("r", (d) -> d.radius)
 			.style("stroke", '#dfdfdf')
-			.style("stroke-width", 1)
+			.style("stroke-width", 2)
 			.style("fill", "white")
 
 		node.append "text"
@@ -259,12 +259,12 @@ Network = () ->
 		nodesG.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")")
 	
 	showDetails = (d, i) ->
-		d3.select(this).select('circle').style("stroke-width", 2.0)
+		d3.select(this).select('circle').style("stroke-width", 4.0)
 		d3.select(this).select('.count').style("display", "inline")
 
 
 	hideDetails = (d, i) ->
-		d3.select(this).select('circle').style("stroke-width", 1.0)
+		d3.select(this).select('circle').style("stroke-width", 2.0)
 		d3.select(this).select('.count').style("display", "none")
 	
 	clickFunction = (d, i) ->

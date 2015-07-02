@@ -18,6 +18,7 @@ block content
 	.row
 		.col-md-6.col-md-push-6
 			#vis
+				h2.text-center Loading...
 		.col-md-6.col-md-pull-6
 			#accordion.panel-group(role="tablist", aria-multiselectable="true")
 				.panel.panel-default#history
@@ -35,13 +36,7 @@ block content
 
 					#collapseTwo.panel-collapse.collapse.in(role="tabpanel", aria-labelledby="headingTwo")
 						ul.list-group
-							.text-center <br> No results.<br><br>
+							//- .text-center <br> No results.<br><br>
 
-
-			//- 	span#numResults
-			//- 	a(class="btn btn-default btn-sm", data-toggle="collapse", href="#collapseExample", aria-expanded="false", aria-controls="collapseExample") History
-			//- 	.collapse#collapseExample
-			//- 		.panel.panel-default
-			//- 			.panel-body
-			//- 				.list-group
-			//- #details
+block scripts
+	script(type="text/javascript" src="scripts/fancy.js")

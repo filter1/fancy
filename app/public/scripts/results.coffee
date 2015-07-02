@@ -6,7 +6,6 @@
 			alert 'You have to be logged in to save documents.'
 			console.log err
 
-
 @sendLinkclickToServer = (url) ->
 	if userLoggedIn()
 		$.post( '/linkclick', { url: url} )

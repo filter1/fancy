@@ -42,6 +42,7 @@
     myNetwork = Network();
     d3.json("data/lattice.json", function(json) {
       var searchSubmit;
+      $('#vis').empty();
       myNetwork("#vis", json);
       searchSubmit = function() {
         var query;
@@ -441,7 +442,7 @@
       node.selectAll("*").remove();
       node.append("circle").attr("r", function(d) {
         return d.radius;
-      }).style("stroke", '#dfdfdf').style("stroke-width", 1).style("fill", "white");
+      }).style("stroke", '#dfdfdf').style("stroke-width", 2).style("fill", "white");
       node.append("text").text(formatLabelText).attr("class", "nodeLabel").style("font-size", function(x) {
         return (fontScale(x.extensionNames.length)) + "em";
       }).attr("dy", "0.25em");
@@ -496,11 +497,11 @@
       return nodesG.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     };
     showDetails = function(d, i) {
-      d3.select(this).select('circle').style("stroke-width", 2.0);
+      d3.select(this).select('circle').style("stroke-width", 4.0);
       return d3.select(this).select('.count').style("display", "inline");
     };
     hideDetails = function(d, i) {
-      d3.select(this).select('circle').style("stroke-width", 1.0);
+      d3.select(this).select('circle').style("stroke-width", 2.0);
       return d3.select(this).select('.count').style("display", "none");
     };
     clickFunction = function(d, i) {

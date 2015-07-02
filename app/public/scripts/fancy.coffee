@@ -23,6 +23,7 @@ $ ->
 	myNetwork = Network()	
 
 	d3.json "data/lattice.json", (json) ->
+		$('#vis').empty()
 		myNetwork "#vis", json
 
 		# do this stuff after the json was loaded
