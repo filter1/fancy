@@ -1,5 +1,5 @@
 {
-  "port": 1337,
+  "port": 8111,
   "dbName": "dimh",
   "dbUser": "johannes",
   "dbPassword": "password"
