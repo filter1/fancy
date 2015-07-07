@@ -49,19 +49,19 @@ $ ->
 			$('#collapseOne').collapse 'show'
 
 	# Load JSON for the typeahead in search field in parallel to the JSON for the lattice.
-	$.getJSON 'data/suggestions.json', (suggestions) ->
-		substringMatcher = (strs) ->
-		  (q, cb) ->
-		  	if q
-			    matches = []
-			    substrRegex = new RegExp("^" + q, 'i') # ignore case, start with q
-			    $.each( strs, (i, str) -> matches.push str if substrRegex.test str )
-		    	cb(matches)
-		    else
-		    	cb(strs[..20])
 
+		$.getJSON 'data/suggestions.json', (suggestions) ->
+			substringMatcher = (strs) ->
+			  (q, cb) ->
+			  	if q
+				    matches = []
+				    substrRegex = new RegExp("^" + q, 'i') # ignore case, start with q
+				    $.each( strs, (i, str) -> matches.push str if substrRegex.test str )
+			    	cb(matches)
+			    else
+			    	cb(strs[..20])
 			$('.typeahead').typeahead({ highlight: true, minLength: 0 }, {
 			  name: 'suggestions',
 			  source: substringMatcher(suggestions),
 			  limit: 20
-			})
+			}).on('typeahead:selected', (e, data) -> searchSubmit() )

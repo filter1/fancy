@@ -93,8 +93,13 @@ Network = () ->
 		focusedConceptFlatList = getCurrentConceptTerms focusedConceptInOrderAsListofList
 
 		printResultList curConcept, documents
-		$('#search-bar input').val focusedConceptFlatList.join ' '
+
+		$('.typeahead').typeahead('val', focusedConceptFlatList.join ' ')
+
 		printBreadcrumb focusedConceptInOrderAsListofList
+
+		#remove error if now on overview
+		$('header .row h4').remove() if curConcept.parentNames.length
 
 	# the user clicked on a bubble/node
 	network.navigationClick = (newConcept) ->
@@ -134,10 +139,14 @@ Network = () ->
 
 		# simplification just split query on ' '
 		focusedConceptInOrderAsListofList = ([w.toLowerCase()] for w in query.split ' ' )
+		x = ([w.toLowerCase()] for w in query.split ' ' ).sort()
 
-		# no hit?
-
-		saveNavigationToHistory focusedConceptInOrderAsListofList, 'search'
+		# if search fails, show overview & error
+		unless conceptToId.has x
+			focusedConceptInOrderAsListofList = [[]]
+			$('header .row').append '<h4><span class="label label-danger">No results. Showing Overview.</span></h4>'
+		else
+			saveNavigationToHistory focusedConceptInOrderAsListofList, 'search'
 
 		update()
 

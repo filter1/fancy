@@ -12,6 +12,8 @@
 
 printResultList = (curConcept, documents) ->
 
+	$('#history').scrollTop();
+
 	details = $('#details .list-group').text ''
 	
 	resultingDocuments = curConcept.extensionNames

@@ -26,7 +26,7 @@
     adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('header').outerHeight(true) - 10;
     $('.col-md-6, #viz').height(adaptHeight);
     myNetwork = Network();
-    d3.json("data/lattice.json", function(json) {
+    return d3.json("data/lattice.json", function(json) {
       var searchSubmit;
       $('#vis').empty();
       myNetwork(json);
@@ -60,36 +60,38 @@
       $('#collapseOne').on('hidden.bs.collapse', function() {
         return $('#collapseTwo').collapse('show');
       });
-      return $('#collapseTwo').on('hidden.bs.collapse', function() {
+      $('#collapseTwo').on('hidden.bs.collapse', function() {
         return $('#collapseOne').collapse('show');
       });
-    });
-    return $.getJSON('data/suggestions.json', function(suggestions) {
-      var substringMatcher;
-      substringMatcher = function(strs) {
-        return function(q, cb) {
-          var matches, substrRegex;
-          if (q) {
-            matches = [];
-            substrRegex = new RegExp("^" + q, 'i');
-            $.each(strs, function(i, str) {
-              if (substrRegex.test(str)) {
-                return matches.push(str);
-              }
-            });
-            return cb(matches);
-          } else {
-            return cb(strs.slice(0, 21));
-          }
+      return $.getJSON('data/suggestions.json', function(suggestions) {
+        var substringMatcher;
+        substringMatcher = function(strs) {
+          return function(q, cb) {
+            var matches, substrRegex;
+            if (q) {
+              matches = [];
+              substrRegex = new RegExp("^" + q, 'i');
+              $.each(strs, function(i, str) {
+                if (substrRegex.test(str)) {
+                  return matches.push(str);
+                }
+              });
+              return cb(matches);
+            } else {
+              return cb(strs.slice(0, 21));
+            }
+          };
         };
-      };
-      return $('.typeahead').typeahead({
-        highlight: true,
-        minLength: 0
-      }, {
-        name: 'suggestions',
-        source: substringMatcher(suggestions),
-        limit: 20
+        return $('.typeahead').typeahead({
+          highlight: true,
+          minLength: 0
+        }, {
+          name: 'suggestions',
+          source: substringMatcher(suggestions),
+          limit: 20
+        }).on('typeahead:selected', function(e, data) {
+          return searchSubmit();
+        });
       });
     });
   });
@@ -265,6 +267,7 @@
 
   printResultList = function(curConcept, documents) {
     var button, details, doc, docId, j, la, len, nDocs, reg, resultingDocuments, results;
+    $('#history').scrollTop();
     details = $('#details .list-group').text('');
     resultingDocuments = curConcept.extensionNames;
     nDocs = resultingDocuments.length;
@@ -351,8 +354,11 @@
       force.start();
       focusedConceptFlatList = getCurrentConceptTerms(focusedConceptInOrderAsListofList);
       printResultList(curConcept, documents);
-      $('#search-bar input').val(focusedConceptFlatList.join(' '));
-      return printBreadcrumb(focusedConceptInOrderAsListofList);
+      $('.typeahead').typeahead('val', focusedConceptFlatList.join(' '));
+      printBreadcrumb(focusedConceptInOrderAsListofList);
+      if (curConcept.parentNames.length) {
+        return $('header .row h4').remove();
+      }
     };
     network.navigationClick = function(newConcept) {
       var newConceptTerms;
@@ -379,7 +385,7 @@
       return update();
     };
     network.navigationSearch = function(query) {
-      var w;
+      var w, x;
       force.stop();
       focusedConceptInOrderAsListofList = (function() {
         var j, len, ref, results;
@@ -391,7 +397,22 @@
         }
         return results;
       })();
-      saveNavigationToHistory(focusedConceptInOrderAsListofList, 'search');
+      x = ((function() {
+        var j, len, ref, results;
+        ref = query.split(' ');
+        results = [];
+        for (j = 0, len = ref.length; j < len; j++) {
+          w = ref[j];
+          results.push([w.toLowerCase()]);
+        }
+        return results;
+      })()).sort();
+      if (!conceptToId.has(x)) {
+        focusedConceptInOrderAsListofList = [[]];
+        $('header .row').append('<h4><span class="label label-danger">No results. Showing Overview.</span></h4>');
+      } else {
+        saveNavigationToHistory(focusedConceptInOrderAsListofList, 'search');
+      }
       return update();
     };
     setupData = function(data) {
