@@ -44,13 +44,13 @@ User = sequelize.define 'user', {
 
 Like = sequelize.define 'like', {
 		documentURL: { type: Sequelize.STRING, unique: true }
-		documentTitle: { type: Sequelize.STRING }
+		documentTitle: { type: Sequelize.TEXT }
 	}
 
 # save date because users' history will be logged without been logged in.
 Historyitem = sequelize.define 'historyitem', {
-		terms: { type: Sequelize.STRING },
-		interaction: { type: Sequelize.STRING }
+		terms: { type: Sequelize.TEXT },
+		interaction: { type: Sequelize.TEXT }
 	}
 
 Linkclick = sequelize.define 'linkclick', {

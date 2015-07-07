@@ -57,16 +57,16 @@
       unique: true
     },
     documentTitle: {
-      type: Sequelize.STRING
+      type: Sequelize.TEXT
     }
   });
 
   Historyitem = sequelize.define('historyitem', {
     terms: {
-      type: Sequelize.STRING
+      type: Sequelize.TEXT
     },
     interaction: {
-      type: Sequelize.STRING
+      type: Sequelize.TEXT
     }
   });
 
