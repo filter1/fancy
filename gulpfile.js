@@ -1,23 +1,21 @@
 var gulp = require('gulp'),
-  watch = require('gulp-watch'),
   coffee = require('gulp-coffee'),
   sass = require('gulp-sass'),
   uglify  = require('gulp-uglify'),
+  nodemon = require('gulp-nodemon'),
   concat  = require('gulp-concat');
  
-gulp.task('coffee-public', function() {
+gulp.task('coffee-frontend', function() {
   gulp.src('app/public/scripts/*.coffee')
     .pipe(concat('fancy.coffee'))
     .pipe(coffee())
     .pipe(gulp.dest('app/public/scripts'))
-    // .pipe(connect.reload());
 });
 
-gulp.task('coffee-app', function() {
+gulp.task('coffee-backend', function() {
   gulp.src('app/*.coffee')
     .pipe(coffee())
     .pipe(gulp.dest('app'));
-    // .pipe(connect.reload());
 });
 
 gulp.task('sass', function() {
@@ -25,35 +23,20 @@ gulp.task('sass', function() {
   gulp.src('app/public/styles/*.scss')
     .pipe(sass({errLogToConsole: true}))
     .pipe(gulp.dest('app/public/styles'));
-    // .pipe(connect.reload());
 });
 
 // can add more here
 gulp.task('watch', function() {
-  gulp.watch('app/public/scripts/*.coffee', ['coffee-public']);
-  gulp.watch('app/*.coffee', ['coffee-app']);
+  gulp.watch('app/public/scripts/*.coffee', ['coffee-frontend']);
+  gulp.watch('app/*.coffee', ['coffee-backend']);
   gulp.watch('app/public/styles/*.scss', ['sass']);
 });
 
-
-var browserSync = require('browser-sync');
-var nodemon = require('gulp-nodemon');
-  
-gulp.task('browser-sync', ['nodemon'], function() {
-  browserSync.init(null, {
-    proxy: "http://localhost:3000",
-        files: ["app/**/*.*"],
-        browser: "google chrome",
-        port: 8080,
-  });
-});
- 
-gulp.task('nodemon', function (cb) {
-  return nodemon({
+gulp.task('start', function () {
+  nodemon({
     script: 'app/app.js'
-  }).on('start', function () {
-      cb();
-  });
-});
+  , env: { 'NODE_ENV': 'development' }
+  })
+})
 
-gulp.task('default', ['coffee-public', 'coffee-app', 'watch', 'browser-sync']);
+gulp.task('default', ['coffee-frontend', 'coffee-backend', 'watch', 'start']);

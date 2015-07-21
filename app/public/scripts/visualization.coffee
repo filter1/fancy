@@ -244,7 +244,7 @@ Network = () ->
 
 	forceTick = (e) ->
 		dampenAlpha = e.alpha * 0.1
-		curNodesData
+		node
 			.each(gravity(dampenAlpha))
 			.each(collide(jitter))
 			.attr("transform", (d, i) -> "translate(#{d.x},#{d.y})")

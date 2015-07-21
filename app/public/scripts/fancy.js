@@ -510,7 +510,7 @@
     forceTick = function(e) {
       var dampenAlpha;
       dampenAlpha = e.alpha * 0.1;
-      return curNodesData.each(gravity(dampenAlpha)).each(collide(jitter)).attr("transform", function(d, i) {
+      return node.each(gravity(dampenAlpha)).each(collide(jitter)).attr("transform", function(d, i) {
         return "translate(" + d.x + "," + d.y + ")";
       });
     };
