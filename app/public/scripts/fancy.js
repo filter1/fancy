@@ -348,6 +348,7 @@
         return results;
       })()).sort();
       curConcept = conceptToId.get(conceptProccessed);
+      console.log(curConcept);
       curNodesData = filterNodes(curConcept);
       force.nodes(curNodesData);
       updateNodes();
@@ -385,7 +386,7 @@
       return update();
     };
     network.navigationSearch = function(query) {
-      var w, x;
+      var c, w, x;
       force.stop();
       focusedConceptInOrderAsListofList = (function() {
         var j, len, ref, results;
@@ -411,7 +412,12 @@
         focusedConceptInOrderAsListofList = [[]];
         $('header .row').append('<h4><span class="label label-danger">No results. Showing Overview.</span></h4>');
       } else {
-        saveNavigationToHistory(focusedConceptInOrderAsListofList, 'search');
+        c = conceptToId.get(x);
+        if (c.parentNames.length) {
+          saveNavigationToHistory(focusedConceptInOrderAsListofList, 'search');
+        } else {
+          focusedConceptInOrderAsListofList = [[]];
+        }
       }
       return update();
     };
@@ -504,7 +510,7 @@
     forceTick = function(e) {
       var dampenAlpha;
       dampenAlpha = e.alpha * 0.1;
-      return node.each(gravity(dampenAlpha)).each(collide(jitter)).attr("transform", function(d, i) {
+      return curNodesData.each(gravity(dampenAlpha)).each(collide(jitter)).attr("transform", function(d, i) {
         return "translate(" + d.x + "," + d.y + ")";
       });
     };

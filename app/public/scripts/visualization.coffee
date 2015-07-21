@@ -83,6 +83,9 @@ Network = () ->
 		# tranfrom to internal representation
 		conceptProccessed = (c.toLowerCase() for c in terms).sort()
 		curConcept = conceptToId.get conceptProccessed
+
+		console.log curConcept
+
 		curNodesData = filterNodes curConcept
 		
 		force.nodes(curNodesData)
@@ -146,7 +149,12 @@ Network = () ->
 			focusedConceptInOrderAsListofList = [[]]
 			$('header .row').append '<h4><span class="label label-danger">No results. Showing Overview.</span></h4>'
 		else
-			saveNavigationToHistory focusedConceptInOrderAsListofList, 'search'
+			# special treatment when the search is empty.
+			c = conceptToId.get x
+			if c.parentNames.length
+				saveNavigationToHistory focusedConceptInOrderAsListofList, 'search'
+			else
+				focusedConceptInOrderAsListofList = [[]]
 
 		update()
 
@@ -236,7 +244,7 @@ Network = () ->
 
 	forceTick = (e) ->
 		dampenAlpha = e.alpha * 0.1
-		node
+		curNodesData
 			.each(gravity(dampenAlpha))
 			.each(collide(jitter))
 			.attr("transform", (d, i) -> "translate(#{d.x},#{d.y})")
