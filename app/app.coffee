@@ -1,10 +1,11 @@
 express = require 'express'
 cookieParser = require 'cookie-parser'
 bodyParser = require 'body-parser'
-Sequelize = require 'sequelize'
 config = require 'config'
 compress = require 'compression'
-
+mongoose = require 'mongoose'
+multer  = require 'multer'
+fs = require 'fs'
 
 ##########
 # Setup  #
@@ -14,152 +15,96 @@ app = express()
 
 app.use( compress() )
 app.use( express.static __dirname + '/public' )
-app.use( cookieParser 'secret' )
 app.use( bodyParser.urlencoded { extended: false } )
 app.use( bodyParser.json() )
 
 app.set 'views', __dirname + '/views'
 app.set 'view engine', 'jade'
 
+upload = multer({ dest: 'uploads/' })
 
 ##########
 # Models #
 ##########
 
-sequelize = new Sequelize( config.get("dbName"), config.get("dbUser"), config.get("dbPassword") , {
-		host: 'localhost',
-		dialect: 'mysql'
-		})
+mongoose.connect 'mongodb://localhost/test'
 
-sequelize.authenticate().done( (err) ->
-	if err
-		console.log "connection failed: #{err}"
-	else
-		console.log 'connection success'
-)
+ObjectId = mongoose.Schema.Types.ObjectId
 
-User = sequelize.define 'user', {
-		name: { type: Sequelize.STRING, unique: true }
-	}
+entrySchema = mongoose.Schema({
+    name: String,
+    secret: String
+  })
 
-Like = sequelize.define 'like', {
-		documentURL: { type: Sequelize.STRING, unique: true }
-		documentTitle: { type: Sequelize.TEXT }
-	}
+conceptSchema = mongoose.Schema({
+		entry_id: { type: ObjectId, ref: 'Entry' },
+		intension: [String],
+		extension: [{ type: ObjectId, ref: 'Document' }],
+		children: [{ type: ObjectId, ref: 'Concept' }],
+		parents: [{ type: ObjectId, ref: 'Concept' }]
+	})
 
-# save date because users' history will be logged without been logged in.
-Historyitem = sequelize.define 'historyitem', {
-		terms: { type: Sequelize.TEXT },
-		interaction: { type: Sequelize.TEXT }
-	}
+conceptSchema.index {entry_id: 1, _id: -1 } # order first after entry, than after the id
 
-Linkclick = sequelize.define 'linkclick', {
-		URL: { type: Sequelize.STRING }
-	}
+documentSchema = mongoose.Schema({
+		entry_id: { type: ObjectId, ref: 'Entry' },
+		title: String,
+		body: String,
+		url: String
+		# attributes: [String]	
+	})
 
-User.hasMany Like
-User.hasMany Linkclick
-User.hasMany Historyitem
+documentSchema.index {entry_id: 1, _id: -1 } # order first after entry, than after the id
 
-Like.belongsTo User
-Linkclick.belongsTo User
-Historyitem.belongsTo User
+Entry = mongoose.model('Entry', entrySchema)
+Concept = mongoose.model('Concept', conceptSchema)
+Document = mongoose.model('Document', documentSchema)
 
-sequelize.sync({force: false}).then( ->
-			console.log 'successfully synced models and tables'
-		)
 
+# order of the docuemnts is extremly important
 
 ##########
 # Routes #
 ##########
 
+app.get '/', (_, res) -> res.render 'index'
+app.get '/infos', (_, res) -> res.render 'infos'
+app.get '/upload', (_, res) -> res.render 'upload'
 
-app.get '/', (req, res) -> res.render 'index', { userName: req.cookies.userName }
+uploadEntry = upload.single('file')
 
-app.get '/infos', (req, res) -> res.render 'infos', { userName: req.cookies.userName }
+app.post '/upload', uploadEntry, (req, res) ->
+	console.log req.body
+	path = req.file.path
 
-app.get '/login', (req, res) -> res.render 'login'
-app.post '/login', (req, res) ->
-	userName = req.body.userName
-	res.cookie 'userName', userName
+	entryName = req.body.entryName
+	secret = req.body.secret
 
-	User.create { name: userName }
-		.then (user) ->
-			alert = { message: "Newly registered as #{userName}!" }
-			res.render 'login', { alert: alert, userName: userName }
-		.catch (user) ->
-			alert = { message: "Welcome Back, #{userName}!"}
-			res.render 'login', { alert: alert, userName: userName }
+	new Entry { name: entryName, secret: secret }
+		.save (err, newEntry) ->
+			if err
+				console.log err
+			else
+				newEntryId = newEntry.id
+				data = JSON.parse( fs.readFileSync path, 'utf8' )
 
-app.get '/logout', (req, res) ->
-	res.cookie 'userName', 'XXX', { maxAge: -1 }
-	res.redirect '/'
+				query = Document.collection.initializeOrderedBulkOp()
 
-# restrict data access
-isAuthenticatedForData = (req, res, next) ->
-	userName = req.cookies.userName
+				for object in data.objects
 
-	if userName
-		User.findOne { where: {name: userName}}
-			.then (user) ->
-				res.locals.user = user
-				console.log "verification success #{userName}"
-				return next()
-	else
-		res.status(403)
-		res.end()
+					query.insert { title: object.title, content: object.content, url: object.url, entry_id: newEntryId }
 
-	# console.log "verification failed #{userName}"
-	# return res.redirect('/')
+				query.execute()
 
-app.get('/history', isAuthenticatedForData, (req, res) ->
-	console.log 'new request to get history data'
-	user = res.locals.user
-	user.getHistoryitems().then( (items) ->
-			console.log items
-			res.json( items )
-		)
-	)
+				query = Concept.collection.initializeOrderedBulkOp()
 
-app.post('/history', isAuthenticatedForData, (req, res) ->
-		console.log 'new request to store history'
-		user = res.locals.user
-		history = JSON.parse req.body.history
-		for item in history
-			user.createHistoryitem( {interaction: item.interaction, terms: JSON.stringify(item.terms)} )
-					.then( -> console.log "successfully inserted new history" )
-		res.end()
-	)
+				for concept in data.lattice
+					query.insert { intent: concept.intensionNames, extent: concept.extensionNames, children: concept.childrenNames, parents: concept.parentNames, entry_id: newEntryId }
 
-app.post('/likes', isAuthenticatedForData, (req, res) ->
-		console.log 'new request to store likes'
-		user = res.locals.user
-		documentURL = req.body.documentURL
-		documentTitle = req.body.documentTitle
-		user.createLike( { documentURL: documentURL, documentTitle: documentTitle } )
-			.then -> console.log 'new like saved'
-			res.end()
-		res.end()
-	)
+				query.execute( (err) -> console.log err)
+				console.log 'happy! success!'
+				res.end("success")
 
-app.get('/likes', isAuthenticatedForData, (req, res) ->
-		user = res.locals.user
-		user.getLikes()
-			.then (documents) ->
-				res.render 'likes', {documents: documents, userName: user.get('name')}
-			.catch ->
-				res.end()
-	)
-
-app.post('/linkclick', isAuthenticatedForData, (req, res) ->
-		user = res.locals.user
-		user.createLinkclick { url: req.body.url }
-			.then ->
-				console.log 'new linkclick saved'
-				res.end()
-			res.end()
-	)
 
 ##########
 # Listen #

@@ -1,8 +1,0 @@
-extends ./layout.jade
-
-block content
-	.container
-		h1 My Bookmarks
-		.list-group
-			each doc in documents
-				a.list-group-item(target="_blank" href=doc.get('documentURL'))= doc.get('documentTitle')

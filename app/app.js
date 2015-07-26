@@ -1,5 +1,5 @@
 (function() {
-  var Historyitem, Like, Linkclick, Sequelize, User, app, bodyParser, compress, config, cookieParser, express, isAuthenticatedForData, port, sequelize;
+  var Concept, Document, Entry, ObjectId, app, bodyParser, compress, conceptSchema, config, cookieParser, documentSchema, entrySchema, express, fs, mongoose, multer, port, upload, uploadEntry;
 
   express = require('express');
 
@@ -7,19 +7,21 @@
 
   bodyParser = require('body-parser');
 
-  Sequelize = require('sequelize');
-
   config = require('config');
 
   compress = require('compression');
+
+  mongoose = require('mongoose');
+
+  multer = require('multer');
+
+  fs = require('fs');
 
   app = express();
 
   app.use(compress());
 
   app.use(express["static"](__dirname + '/public'));
-
-  app.use(cookieParser('secret'));
 
   app.use(bodyParser.urlencoded({
     extended: false
@@ -31,204 +33,132 @@
 
   app.set('view engine', 'jade');
 
-  sequelize = new Sequelize(config.get("dbName"), config.get("dbUser"), config.get("dbPassword"), {
-    host: 'localhost',
-    dialect: 'mysql'
+  upload = multer({
+    dest: 'uploads/'
   });
 
-  sequelize.authenticate().done(function(err) {
-    if (err) {
-      return console.log("connection failed: " + err);
-    } else {
-      return console.log('connection success');
-    }
+  mongoose.connect('mongodb://localhost/test');
+
+  ObjectId = mongoose.Schema.Types.ObjectId;
+
+  entrySchema = mongoose.Schema({
+    name: String,
+    secret: String
   });
 
-  User = sequelize.define('user', {
-    name: {
-      type: Sequelize.STRING,
-      unique: true
-    }
-  });
-
-  Like = sequelize.define('like', {
-    documentURL: {
-      type: Sequelize.STRING,
-      unique: true
+  conceptSchema = mongoose.Schema({
+    entry_id: {
+      type: ObjectId,
+      ref: 'Entry'
     },
-    documentTitle: {
-      type: Sequelize.TEXT
-    }
+    intension: [String],
+    extension: [
+      {
+        type: ObjectId,
+        ref: 'Document'
+      }
+    ],
+    children: [
+      {
+        type: ObjectId,
+        ref: 'Concept'
+      }
+    ],
+    parents: [
+      {
+        type: ObjectId,
+        ref: 'Concept'
+      }
+    ]
   });
 
-  Historyitem = sequelize.define('historyitem', {
-    terms: {
-      type: Sequelize.TEXT
+  conceptSchema.index({
+    entry_id: 1,
+    _id: -1
+  });
+
+  documentSchema = mongoose.Schema({
+    entry_id: {
+      type: ObjectId,
+      ref: 'Entry'
     },
-    interaction: {
-      type: Sequelize.TEXT
-    }
+    title: String,
+    body: String,
+    url: String
   });
 
-  Linkclick = sequelize.define('linkclick', {
-    URL: {
-      type: Sequelize.STRING
-    }
+  documentSchema.index({
+    entry_id: 1,
+    _id: -1
   });
 
-  User.hasMany(Like);
+  Entry = mongoose.model('Entry', entrySchema);
 
-  User.hasMany(Linkclick);
+  Concept = mongoose.model('Concept', conceptSchema);
 
-  User.hasMany(Historyitem);
+  Document = mongoose.model('Document', documentSchema);
 
-  Like.belongsTo(User);
-
-  Linkclick.belongsTo(User);
-
-  Historyitem.belongsTo(User);
-
-  sequelize.sync({
-    force: false
-  }).then(function() {
-    return console.log('successfully synced models and tables');
+  app.get('/', function(_, res) {
+    return res.render('index');
   });
 
-  app.get('/', function(req, res) {
-    return res.render('index', {
-      userName: req.cookies.userName
-    });
+  app.get('/infos', function(_, res) {
+    return res.render('infos');
   });
 
-  app.get('/infos', function(req, res) {
-    return res.render('infos', {
-      userName: req.cookies.userName
-    });
+  app.get('/upload', function(_, res) {
+    return res.render('upload');
   });
 
-  app.get('/login', function(req, res) {
-    return res.render('login');
-  });
+  uploadEntry = upload.single('file');
 
-  app.post('/login', function(req, res) {
-    var userName;
-    userName = req.body.userName;
-    res.cookie('userName', userName);
-    return User.create({
-      name: userName
-    }).then(function(user) {
-      var alert;
-      alert = {
-        message: "Newly registered as " + userName + "!"
-      };
-      return res.render('login', {
-        alert: alert,
-        userName: userName
-      });
-    })["catch"](function(user) {
-      var alert;
-      alert = {
-        message: "Welcome Back, " + userName + "!"
-      };
-      return res.render('login', {
-        alert: alert,
-        userName: userName
-      });
-    });
-  });
-
-  app.get('/logout', function(req, res) {
-    res.cookie('userName', 'XXX', {
-      maxAge: -1
-    });
-    return res.redirect('/');
-  });
-
-  isAuthenticatedForData = function(req, res, next) {
-    var userName;
-    userName = req.cookies.userName;
-    if (userName) {
-      return User.findOne({
-        where: {
-          name: userName
+  app.post('/upload', uploadEntry, function(req, res) {
+    var entryName, path, secret;
+    console.log(req.body);
+    path = req.file.path;
+    entryName = req.body.entryName;
+    secret = req.body.secret;
+    return new Entry({
+      name: entryName,
+      secret: secret
+    }).save(function(err, newEntry) {
+      var concept, data, i, j, len, len1, newEntryId, object, query, ref, ref1;
+      if (err) {
+        return console.log(err);
+      } else {
+        newEntryId = newEntry.id;
+        data = JSON.parse(fs.readFileSync(path, 'utf8'));
+        query = Document.collection.initializeOrderedBulkOp();
+        ref = data.objects;
+        for (i = 0, len = ref.length; i < len; i++) {
+          object = ref[i];
+          query.insert({
+            title: object.title,
+            content: object.content,
+            url: object.url,
+            entry_id: newEntryId
+          });
         }
-      }).then(function(user) {
-        res.locals.user = user;
-        console.log("verification success " + userName);
-        return next();
-      });
-    } else {
-      res.status(403);
-      return res.end();
-    }
-  };
-
-  app.get('/history', isAuthenticatedForData, function(req, res) {
-    var user;
-    console.log('new request to get history data');
-    user = res.locals.user;
-    return user.getHistoryitems().then(function(items) {
-      console.log(items);
-      return res.json(items);
+        query.execute();
+        query = Concept.collection.initializeOrderedBulkOp();
+        ref1 = data.lattice;
+        for (j = 0, len1 = ref1.length; j < len1; j++) {
+          concept = ref1[j];
+          query.insert({
+            intent: concept.intensionNames,
+            extent: concept.extensionNames,
+            children: concept.childrenNames,
+            parents: concept.parentNames,
+            entry_id: newEntryId
+          });
+        }
+        query.execute(function(err) {
+          return console.log(err);
+        });
+        console.log('happy! success!');
+        return res.end("success");
+      }
     });
-  });
-
-  app.post('/history', isAuthenticatedForData, function(req, res) {
-    var history, i, item, len, user;
-    console.log('new request to store history');
-    user = res.locals.user;
-    history = JSON.parse(req.body.history);
-    for (i = 0, len = history.length; i < len; i++) {
-      item = history[i];
-      user.createHistoryitem({
-        interaction: item.interaction,
-        terms: JSON.stringify(item.terms)
-      }).then(function() {
-        return console.log("successfully inserted new history");
-      });
-    }
-    return res.end();
-  });
-
-  app.post('/likes', isAuthenticatedForData, function(req, res) {
-    var documentTitle, documentURL, user;
-    console.log('new request to store likes');
-    user = res.locals.user;
-    documentURL = req.body.documentURL;
-    documentTitle = req.body.documentTitle;
-    user.createLike({
-      documentURL: documentURL,
-      documentTitle: documentTitle
-    }).then(function() {
-      return console.log('new like saved');
-    });
-    res.end();
-    return res.end();
-  });
-
-  app.get('/likes', isAuthenticatedForData, function(req, res) {
-    var user;
-    user = res.locals.user;
-    return user.getLikes().then(function(documents) {
-      return res.render('likes', {
-        documents: documents,
-        userName: user.get('name')
-      });
-    })["catch"](function() {
-      return res.end();
-    });
-  });
-
-  app.post('/linkclick', isAuthenticatedForData, function(req, res) {
-    var user;
-    user = res.locals.user;
-    user.createLinkclick({
-      url: req.body.url
-    }).then(function() {
-      console.log('new linkclick saved');
-      return res.end();
-    });
-    return res.end();
   });
 
   port = config.get("port");

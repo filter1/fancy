@@ -1,0 +1,17 @@
+extends ./layout.jade
+
+block content
+	.container
+		h1 Upload
+		form(method="POST", enctype="multipart/form-data")
+			.form-group
+				label(for="fileEntryName") Name your Entry
+				input.form-control(type="text", name="entryName", id="fileEntryName", placeholder="test")
+			.form-group
+				label(for="fileSecret") Secret
+				input.form-control(type="text", name="secret", id="fileSecret")
+			.form-group
+				label(for="fileFile") File
+				input.form-control(type="file", id="fileFile", name="file")
+				p.help-block Mind the style!
+			button.btn.btn-default(type=submit) Go
