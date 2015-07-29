@@ -1,5 +1,6 @@
 (function() {
-  var Concept, Document, Entry, ObjectId, app, bodyParser, compress, conceptSchema, config, cookieParser, documentSchema, entrySchema, express, fs, mongoose, multer, port, upload, uploadEntry;
+  var Concept, Dataset, Document, app, bodyParser, compress, conceptSchema, config, cookieParser, datasetSchema, documentSchema, express, fs, mongoose, multer, port, upload, uploadDataset,
+    indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
   express = require('express');
 
@@ -39,60 +40,47 @@
 
   mongoose.connect('mongodb://localhost/test');
 
-  ObjectId = mongoose.Schema.Types.ObjectId;
-
-  entrySchema = mongoose.Schema({
-    name: String,
-    secret: String
+  datasetSchema = mongoose.Schema({
+    _id: String,
+    secret: String,
+    maxDocuments: Number
   });
 
   conceptSchema = mongoose.Schema({
-    entry_id: {
-      type: ObjectId,
-      ref: 'Entry'
+    _id: String,
+    dataset_id: {
+      type: String,
+      ref: 'Dataset'
     },
-    intension: [String],
-    extension: [
+    intent: [String],
+    extent: [
       {
-        type: ObjectId,
+        type: String,
         ref: 'Document'
       }
     ],
     children: [
       {
-        type: ObjectId,
+        type: String,
         ref: 'Concept'
       }
     ],
     parents: [
       {
-        type: ObjectId,
+        type: String,
         ref: 'Concept'
       }
     ]
   });
 
-  conceptSchema.index({
-    entry_id: 1,
-    _id: -1
-  });
-
   documentSchema = mongoose.Schema({
-    entry_id: {
-      type: ObjectId,
-      ref: 'Entry'
-    },
+    _id: String,
     title: String,
     body: String,
     url: String
   });
 
-  documentSchema.index({
-    entry_id: 1,
-    _id: -1
-  });
-
-  Entry = mongoose.model('Entry', entrySchema);
+  Dataset = mongoose.model('Dataset', datasetSchema);
 
   Concept = mongoose.model('Concept', conceptSchema);
 
@@ -110,54 +98,159 @@
     return res.render('upload');
   });
 
-  uploadEntry = upload.single('file');
+  uploadDataset = upload.single('file');
 
-  app.post('/upload', uploadEntry, function(req, res) {
-    var entryName, path, secret;
+  app.post('/upload', uploadDataset, function(req, res) {
+    var datasetName, path, secret;
     console.log(req.body);
     path = req.file.path;
-    entryName = req.body.entryName;
+    datasetName = req.body.datasetName;
     secret = req.body.secret;
-    return new Entry({
-      name: entryName,
+    return new Dataset({
+      _id: datasetName,
       secret: secret
-    }).save(function(err, newEntry) {
-      var concept, data, i, j, len, len1, newEntryId, object, query, ref, ref1;
+    }).save(function(err, newDataset) {
+      var children, concatIds, concept, d, data, documents, i, id, index, j, len, len1, maxDocuments, newDatasetId, parents, query, ref, ref1;
       if (err) {
-        return console.log(err);
+        return res.sendStatus(500);
       } else {
-        newEntryId = newEntry.id;
+        newDatasetId = newDataset.id;
         data = JSON.parse(fs.readFileSync(path, 'utf8'));
-        query = Document.collection.initializeOrderedBulkOp();
-        ref = data.objects;
-        for (i = 0, len = ref.length; i < len; i++) {
-          object = ref[i];
-          query.insert({
-            title: object.title,
-            content: object.content,
-            url: object.url,
-            entry_id: newEntryId
-          });
-        }
-        query.execute();
         query = Concept.collection.initializeOrderedBulkOp();
-        ref1 = data.lattice;
-        for (j = 0, len1 = ref1.length; j < len1; j++) {
-          concept = ref1[j];
+        maxDocuments = -1;
+        ref = data.lattice;
+        for (index = i = 0, len = ref.length; i < len; index = ++i) {
+          concept = ref[index];
+          documents = (function() {
+            var j, len1, ref1, results;
+            ref1 = concept.extensionNames;
+            results = [];
+            for (j = 0, len1 = ref1.length; j < len1; j++) {
+              id = ref1[j];
+              results.push(newDatasetId + id);
+            }
+            return results;
+          })();
+          maxDocuments = Math.max(maxDocuments, documents.length);
+          concatIds = newDatasetId + concept.id;
+          children = (function() {
+            var j, len1, ref1, results;
+            ref1 = concept.childrenNames;
+            results = [];
+            for (j = 0, len1 = ref1.length; j < len1; j++) {
+              id = ref1[j];
+              results.push(newDatasetId + id);
+            }
+            return results;
+          })();
+          parents = (function() {
+            var j, len1, ref1, results;
+            ref1 = concept.parentNames;
+            results = [];
+            for (j = 0, len1 = ref1.length; j < len1; j++) {
+              id = ref1[j];
+              results.push(newDatasetId + id);
+            }
+            return results;
+          })();
           query.insert({
+            _id: concatIds,
             intent: concept.intensionNames,
-            extent: concept.extensionNames,
-            children: concept.childrenNames,
-            parents: concept.parentNames,
-            entry_id: newEntryId
+            extent: documents,
+            children: children,
+            parents: parents,
+            dataset_id: newDatasetId
+          });
+          console.log(index + " from " + data.lattice.length);
+        }
+        query.execute(function(err) {
+          if (err) {
+            return res.sendStatus(500);
+          }
+        });
+        newDataset.maxDocuments = maxDocuments;
+        newDataset.save(function(err) {
+          if (err) {
+            return res.sendStatus(500);
+          }
+        });
+        query = Document.collection.initializeOrderedBulkOp();
+        ref1 = data.objects;
+        for (j = 0, len1 = ref1.length; j < len1; j++) {
+          d = ref1[j];
+          concatIds = newDatasetId + d.id;
+          query.insert({
+            _id: concatIds,
+            title: d.title,
+            content: d.content,
+            url: d.content
           });
         }
         query.execute(function(err) {
-          return console.log(err);
+          if (err) {
+            return res.sendStatus(500);
+          }
         });
-        console.log('happy! success!');
         return res.end("success");
       }
+    });
+  });
+
+  app.get('/:name', function(req, res) {
+    var datasetName;
+    datasetName = req.params.name;
+    return Dataset.find({}, function(err, dataset) {
+      var d, datasetNames;
+      if (err) {
+        return res.sendStatus(404);
+      } else {
+        datasetNames = (function() {
+          var i, len, results;
+          results = [];
+          for (i = 0, len = dataset.length; i < len; i++) {
+            d = dataset[i];
+            results.push(d._id);
+          }
+          return results;
+        })();
+        if (indexOf.call(datasetNames, datasetName) >= 0) {
+          return res.render('index', {
+            all: datasetNames,
+            selected: datasetName
+          });
+        } else {
+          return res.sendStatus(404);
+        }
+      }
+    });
+  });
+
+  app.get('/:name/start', function(req, res) {
+    var datasetName;
+    datasetName = req.params.name;
+    console.log('new REQ');
+    return Dataset.findOne({
+      _id: datasetName
+    }).exec(function(err, datasetData) {
+      var maxDocuments;
+      if (err) {
+        res.sendStatus(500);
+      }
+      maxDocuments = datasetData.maxDocuments;
+      return Concept.findOne({
+        intent: [],
+        dataset_id: datasetName
+      }).populate('extent').populate('children').populate('parents').exec(function(err, data) {
+        var result;
+        if (err) {
+          res.sendStatus(500);
+        }
+        result = {
+          maxDocuments: maxDocuments,
+          concept: data
+        };
+        return res.json(result);
+      });
     });
   });
 

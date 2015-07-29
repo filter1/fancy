@@ -29,39 +29,33 @@ upload = multer({ dest: 'uploads/' })
 
 mongoose.connect 'mongodb://localhost/test'
 
-ObjectId = mongoose.Schema.Types.ObjectId
+# ObjectId = mongoose.Schema.Types.ObjectId
 
-entrySchema = mongoose.Schema({
-    name: String,
-    secret: String
+datasetSchema = mongoose.Schema({
+    _id: String,
+    secret: String,
+    maxDocuments: Number
   })
 
 conceptSchema = mongoose.Schema({
-		entry_id: { type: ObjectId, ref: 'Entry' },
-		intension: [String],
-		extension: [{ type: ObjectId, ref: 'Document' }],
-		children: [{ type: ObjectId, ref: 'Concept' }],
-		parents: [{ type: ObjectId, ref: 'Concept' }]
+		_id: String,
+		dataset_id: { type: String, ref: 'Dataset' },
+		intent: [String],
+		extent: [{ type: String, ref: 'Document'}],
+		children: [{ type: String, ref: 'Concept' }],
+		parents: [{ type: String, ref: 'Concept' }]
 	})
-
-conceptSchema.index {entry_id: 1, _id: -1 } # order first after entry, than after the id
 
 documentSchema = mongoose.Schema({
-		entry_id: { type: ObjectId, ref: 'Entry' },
+		_id: String,
 		title: String,
 		body: String,
-		url: String
-		# attributes: [String]	
+		url: String 
 	})
 
-documentSchema.index {entry_id: 1, _id: -1 } # order first after entry, than after the id
-
-Entry = mongoose.model('Entry', entrySchema)
+Dataset = mongoose.model('Dataset', datasetSchema)
 Concept = mongoose.model('Concept', conceptSchema)
 Document = mongoose.model('Document', documentSchema)
-
-
-# order of the docuemnts is extremly important
 
 ##########
 # Routes #
@@ -71,39 +65,83 @@ app.get '/', (_, res) -> res.render 'index'
 app.get '/infos', (_, res) -> res.render 'infos'
 app.get '/upload', (_, res) -> res.render 'upload'
 
-uploadEntry = upload.single('file')
+uploadDataset = upload.single('file')
 
-app.post '/upload', uploadEntry, (req, res) ->
+app.post '/upload', uploadDataset, (req, res) ->
 	console.log req.body
 	path = req.file.path
 
-	entryName = req.body.entryName
+	datasetName = req.body.datasetName
 	secret = req.body.secret
 
-	new Entry { name: entryName, secret: secret }
-		.save (err, newEntry) ->
+	new Dataset { _id: datasetName, secret: secret }
+		.save (err, newDataset) ->
 			if err
-				console.log err
+				res.sendStatus 500
 			else
-				newEntryId = newEntry.id
+				newDatasetId = newDataset.id
 				data = JSON.parse( fs.readFileSync path, 'utf8' )
 
-				query = Document.collection.initializeOrderedBulkOp()
-
-				for object in data.objects
-
-					query.insert { title: object.title, content: object.content, url: object.url, entry_id: newEntryId }
-
-				query.execute()
-
 				query = Concept.collection.initializeOrderedBulkOp()
+				maxDocuments = -1
+				for concept, index in data.lattice
 
-				for concept in data.lattice
-					query.insert { intent: concept.intensionNames, extent: concept.extensionNames, children: concept.childrenNames, parents: concept.parentNames, entry_id: newEntryId }
+					documents = (newDatasetId + id for id in concept.extensionNames)
 
-				query.execute( (err) -> console.log err)
-				console.log 'happy! success!'
+					maxDocuments = Math.max maxDocuments, documents.length
+
+					concatIds = newDatasetId + concept.id
+					children = (newDatasetId + id for id in concept.childrenNames)
+					parents = (newDatasetId + id for id in concept.parentNames)
+					query.insert { _id: concatIds, intent: concept.intensionNames, extent: documents, children: children, parents: parents, dataset_id: newDatasetId }
+
+					console.log "#{index} from #{data.lattice.length}"
+
+				query.execute (err) -> res.sendStatus 500 if err
+
+				newDataset.maxDocuments = maxDocuments
+				newDataset.save (err) -> res.sendStatus 500 if err
+
+				query = Document.collection.initializeOrderedBulkOp()
+				for d in data.objects
+					concatIds = newDatasetId + d.id
+					query.insert {_id: concatIds, title: d.title, content: d.content, url: d.content}
+				query.execute (err) -> res.sendStatus 500 if err
+
 				res.end("success")
+
+app.get '/:name', (req, res)->
+	datasetName = req.params.name
+
+	Dataset.find {}, (err, dataset) ->
+		if err
+			res.sendStatus 404
+		else
+			datasetNames = (d._id for d in dataset)
+
+			if datasetName in datasetNames
+				res.render 'index', {all: datasetNames, selected: datasetName}
+			else
+				res.sendStatus 404
+
+app.get '/:name/start', (req, res) ->
+	datasetName = req.params.name
+
+	console.log 'new REQ'
+
+	Dataset.findOne({_id: datasetName}).exec (err, datasetData) ->
+		res.sendStatus 500 if err
+		maxDocuments = datasetData.maxDocuments
+
+		Concept
+			.findOne({intent: [], dataset_id: datasetName})
+			.populate 'extent'
+			.populate 'children'
+			.populate 'parents'
+			.exec (err, data) ->
+				res.sendStatus 500 if err
+				result = {maxDocuments: maxDocuments, concept: data}
+				res.json result
 
 
 ##########

@@ -13,6 +13,16 @@ html(lang="en")
 		.container-fluid
 			header
 				.row
+					if all
+						.form-inline.pull-right
+							.form-group
+								//- label(for="selectDataset") Select dataset 
+								select.form-control#selectDataset(title="Select Dataset")
+									each val in all
+										if val == selected
+											option(selected)= val
+										else
+											option= val
 					ul.nav.nav-pills.pull-right(role="tablist")
 						li
 							a(href='/') Home
@@ -20,6 +30,7 @@ html(lang="en")
 							a(href='/infos') Infos
 						li
 							a(href='/upload') Upload
+
 
 			block content
 

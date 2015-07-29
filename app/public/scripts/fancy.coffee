@@ -8,8 +8,13 @@ $ ->
 	myNetwork = Network()	
 
 	# Load data from the server
-	d3.json "data/lattice.json", (json) ->
+
+	newUrl =  window.location.pathname + "/start"
+	d3.json newUrl, (json) ->
 		$('#vis').empty()
+
+		console.log json
+
 		myNetwork json
 
 		# do this stuff after the json was loaded

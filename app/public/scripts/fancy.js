@@ -21,14 +21,16 @@
   };
 
   $(function() {
-    var adaptHeight, myNetwork;
+    var adaptHeight, myNetwork, newUrl;
     manageHistory();
     adaptHeight = $(window).height() - $('#search-bar').outerHeight(true) - $('header').outerHeight(true) - 10;
     $('.col-md-6, #viz').height(adaptHeight);
     myNetwork = Network();
-    return d3.json("data/lattice.json", function(json) {
+    newUrl = window.location.pathname + "/start";
+    return d3.json(newUrl, function(json) {
       var searchSubmit;
       $('#vis').empty();
+      console.log(json);
       myNetwork(json);
       searchSubmit = function() {
         var query;
@@ -290,7 +292,7 @@
   };
 
   Network = function() {
-    var clickFunction, collide, collisionPadding, conceptToId, curNodesData, documents, filterNodes, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, idToConcept, jitter, maxFontSize, maxRadius, minCollisionRadius, minFontSize, minRadius, network, node, nodesG, radiusScale, selection, setupData, showDetails, update, updateNodes, width, zoomed;
+    var clickFunction, collide, collisionPadding, curNodesData, focus, focusedConceptInOrderAsListofList, fontScale, force, forceTick, formatLabelText, gravity, height, hideDetails, jitter, maxFontSize, maxRadius, minCollisionRadius, minFontSize, minRadius, network, node, nodesG, radiusScale, selection, showDetails, update, updateNodes, width, zoomed;
     selection = "#vis";
     width = parseInt(d3.select(selection).style("width"));
     height = parseInt(d3.select(selection).style("height"));
@@ -304,30 +306,17 @@
     radiusScale = null;
     fontScale = null;
     curNodesData = [];
-    conceptToId = null;
-    idToConcept = null;
-    documents = null;
+    focus = null;
     nodesG = null;
     node = null;
     focusedConceptInOrderAsListofList = [[]];
     force = d3.layout.force();
-    network = function(data) {
-      var maxNumDocuments, n, vis, zoom;
-      maxNumDocuments = ((function() {
-        var j, len, ref, results;
-        ref = data.lattice;
-        results = [];
-        for (j = 0, len = ref.length; j < len; j++) {
-          n = ref[j];
-          results.push(n.extensionNames.length);
-        }
-        return results;
-      })()).reduce(function(x, y) {
-        return Math.max(x, y);
-      });
-      radiusScale = d3.scale.log().range([minRadius, maxRadius]).domain([1, maxNumDocuments]);
-      fontScale = d3.scale.sqrt().range([minFontSize, maxFontSize]).domain([1, maxNumDocuments]);
-      setupData(data);
+    network = function(startData) {
+      var maxDocuments, vis, zoom;
+      maxDocuments = startData.maxDocuments;
+      focus = startData.concept;
+      radiusScale = d3.scale.log().range([minRadius, maxRadius]).domain([1, maxDocuments]);
+      fontScale = d3.scale.sqrt().range([minFontSize, maxFontSize]).domain([1, maxDocuments]);
       vis = d3.select(selection).append("svg").attr("width", width).attr("height", height);
       nodesG = vis.append("g").attr("id", "nodes");
       zoom = d3.behavior.zoom().on("zoom", zoomed);
@@ -336,20 +325,11 @@
       return update();
     };
     update = function() {
-      var c, conceptProccessed, curConcept, focusedConceptFlatList, terms;
-      terms = getCurrentConceptTerms(focusedConceptInOrderAsListofList);
-      conceptProccessed = ((function() {
-        var j, len, results;
-        results = [];
-        for (j = 0, len = terms.length; j < len; j++) {
-          c = terms[j];
-          results.push(c.toLowerCase());
-        }
-        return results;
-      })()).sort();
-      curConcept = conceptToId.get(conceptProccessed);
-      console.log(curConcept);
-      curNodesData = filterNodes(curConcept);
+      var focusedConceptFlatList;
+      curNodesData = focus.children;
+      curNodesData.forEach(function(node) {
+        return node.forceR = Math.max(minCollisionRadius, radiusScale(node.extent.length));
+      });
       force.nodes(curNodesData);
       updateNodes();
       force.start();
@@ -421,49 +401,11 @@
       }
       return update();
     };
-    setupData = function(data) {
-      var nodes;
-      nodes = data.lattice;
-      nodes.forEach(function(n) {
-        return n.radius = radiusScale(n.extensionNames.length);
-      });
-      nodes.forEach(function(d, i) {
-        return d.forceR = Math.max(minCollisionRadius, radiusScale(d.extensionNames.length));
-      });
-      idToConcept = d3.map(nodes, function(x) {
-        return x.id;
-      });
-      conceptToId = d3.map(nodes, function(x) {
-        var c;
-        return ((function() {
-          var j, len, ref, results;
-          ref = x.intensionNames;
-          results = [];
-          for (j = 0, len = ref.length; j < len; j++) {
-            c = ref[j];
-            results.push(c.toLowerCase());
-          }
-          return results;
-        })()).sort();
-      });
-      return documents = d3.map(data.objects, function(x) {
-        return x.id;
-      });
-    };
-    filterNodes = function(curConcept) {
-      var filterdNodes;
-      filterdNodes = curConcept.childrenNames.map(function(x) {
-        return idToConcept.get(x);
-      });
-      return filterdNodes = filterdNodes.filter(function(x) {
-        return x.extensionNames.length > 0;
-      });
-    };
     formatLabelText = function(node) {
       var focusedNodeText, lowerdNodeText, w;
       lowerdNodeText = (function() {
         var j, len, ref, results;
-        ref = node.intensionNames;
+        ref = node.intent;
         results = [];
         for (j = 0, len = ref.length; j < len; j++) {
           w = ref[j];
@@ -478,18 +420,18 @@
     };
     updateNodes = function() {
       node = nodesG.selectAll("g.node").data(curNodesData, function(d) {
-        return d.id;
+        return d._id;
       });
       node.enter().append('g').attr('class', 'node').call(force.drag);
       node.selectAll("*").remove();
       node.append("circle").attr("r", function(d) {
-        return d.radius;
+        return radiusScale(d.extent.length);
       }).style("stroke", '#dfdfdf').style("stroke-width", 2).style("fill", "white");
       node.append("text").text(formatLabelText).attr("class", "nodeLabel").style("font-size", function(x) {
-        return (fontScale(x.extensionNames.length)) + "em";
+        return (fontScale(x.extent.length)) + "em";
       }).attr("dy", "0.25em");
       node.append("text").text(function(x) {
-        return x.extensionNames.length;
+        return x.extent.length;
       }).attr("class", "countLabel").attr("dy", "1.5em");
       node.on("mouseover", showDetails).on("mouseout", hideDetails).on("click", clickFunction);
       return node.exit().remove();
